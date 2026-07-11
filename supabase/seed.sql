@@ -1,0 +1,1 @@
+-- Application seed data is added with the catalog feature.
