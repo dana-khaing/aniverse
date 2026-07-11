@@ -1,0 +1,2 @@
+import Link from "next/link";import { Play,Star } from "lucide-react";import type { CatalogTitle } from "@/lib/catalog";
+export function TitleCard({title}: {title:CatalogTitle}){return <Link className="catalog-card" href={`/anime/${title.slug}`}><div className={`catalog-poster poster-${title.tone}`}><span>{title.name.split(" ").map(x=>x[0]).join("")}</span><i><Play size={17} fill="currentColor"/></i><b>EP {title.episodes}</b></div><h3>{title.name}</h3><p>{title.format} · {title.year}<span><Star size={12} fill="currentColor"/>{title.score}</span></p></Link>}
