@@ -2,6 +2,7 @@
   "name": "aniverse",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": ">=22.0.0" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,10 +14,13 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.2",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
