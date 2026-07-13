@@ -128,3 +128,21 @@ export const initialCommunityState: CommunityState = {
     { id: "n3", title: "Reply", body: "Mika replied to your comment.", read: true },
   ],
 };
+
+export type ModerationState = {
+  matureContentEnabled: boolean;
+  reports: Array<{ id: string; target: string; reason: string; status: "Open" | "Reviewing" | "Actioned" | "Dismissed" }>;
+  appeals: Array<{ id: string; creator: string; reason: string; status: "Pending" | "Approved" | "Denied" }>;
+  strikes: Array<{ creator: string; reason: string; active: boolean }>;
+};
+
+export const initialModerationState: ModerationState = {
+  matureContentEnabled: false,
+  reports: [
+    { id: "r1", target: "Comment by NightOwl", reason: "Harassment", status: "Open" },
+    { id: "r2", target: "Neon Ronin episode 8", reason: "Incorrect age rating", status: "Reviewing" },
+    { id: "r3", target: "Profile: spam-universe", reason: "Spam", status: "Open" },
+  ],
+  appeals: [{ id: "a1", creator: "Voltage Frame", reason: "Context missing from automated claim", status: "Pending" }],
+  strikes: [{ creator: "Demo Creator", reason: "Repeated unlicensed upload", active: true }],
+};
