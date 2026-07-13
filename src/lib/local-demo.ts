@@ -87,3 +87,25 @@ export const initialCreatorWorkspace: CreatorWorkspace = {
   ],
   uploads: [],
 };
+
+export type LibraryState = {
+  progress: Array<{
+    slug: string;
+    title: string;
+    episode: number;
+    position: number;
+    duration: number;
+    watchedAt: string;
+  }>;
+  favorites: string[];
+  lists: Array<{ id: string; name: string; titles: string[] }>;
+};
+
+export const initialLibraryState: LibraryState = {
+  progress: [
+    { slug: "echoes-of-asteria", title: "Echoes of Asteria", episode: 3, position: 612, duration: 1440, watchedAt: "2026-07-13T09:30:00Z" },
+    { slug: "neon-ronin", title: "Neon Ronin", episode: 2, position: 1100, duration: 1440, watchedAt: "2026-07-12T21:10:00Z" },
+  ],
+  favorites: ["echoes-of-asteria", "paper-moons"],
+  lists: [{ id: "weekend", name: "Weekend watch", titles: ["skybound"] }],
+};
