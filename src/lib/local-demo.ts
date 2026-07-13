@@ -109,3 +109,22 @@ export const initialLibraryState: LibraryState = {
   favorites: ["echoes-of-asteria", "paper-moons"],
   lists: [{ id: "weekend", name: "Weekend watch", titles: ["skybound"] }],
 };
+
+export type CommunityState = {
+  followedCreators: string[];
+  posts: Array<{ id: string; author: string; title: string; body: string; likes: number; liked: boolean; replies: string[] }>;
+  notifications: Array<{ id: string; title: string; body: string; read: boolean }>;
+};
+
+export const initialCommunityState: CommunityState = {
+  followedCreators: ["Lumen Works"],
+  posts: [
+    { id: "p1", author: "Mika", title: "Echoes of Asteria · Episode 12", body: "The cartography motif finally connecting to her lost memories was beautiful. Marking this spoiler-free, but the last frame is everything.", likes: 84, liked: false, replies: ["Same—the color script in that scene was incredible."] },
+    { id: "p2", author: "Kai", title: "Neon Ronin · Episode 8", body: "That rain sequence might be Voltage Frame's best animation work yet.", likes: 51, liked: true, replies: [] },
+  ],
+  notifications: [
+    { id: "n1", title: "New episode", body: "Echoes of Asteria episode 12 is available.", read: false },
+    { id: "n2", title: "Creator update", body: "Lumen Works posted a production note.", read: false },
+    { id: "n3", title: "Reply", body: "Mika replied to your comment.", read: true },
+  ],
+};
