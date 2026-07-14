@@ -24,4 +24,6 @@ describe("local player", () => {
     expect(stored).toContain('"position":720');
     expect(stored).toContain('"neon-ronin"');
   });
+
+  it("offers chapters, tracks, subtitle settings, and autoplay",()=>{render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8}/>);expect(screen.getByRole("button",{name:/Opening/})).toBeInTheDocument();expect(screen.getByLabelText("Video quality")).toBeInTheDocument();expect(screen.getByLabelText("Audio track")).toBeInTheDocument();expect(screen.getByLabelText("Subtitle size")).toBeInTheDocument();expect(screen.getByLabelText("Autoplay next")).toBeChecked();});
 });
