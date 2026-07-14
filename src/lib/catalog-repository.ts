@@ -4,6 +4,8 @@ import {
   catalog,
   getTitle as getFixtureTitle,
   searchCatalog as searchFixtureCatalog,
+  filterCatalog,
+  type SearchFilters,
   type CatalogTitle,
 } from "@/lib/catalog";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -83,6 +85,10 @@ export async function searchCatalog(
       (genre === "all" ||
         title.genre.some((name) => name.toLowerCase() === normalizedGenre)),
   );
+}
+
+export async function filterCatalogRepository(filters: SearchFilters) {
+  return filterCatalog(await listCatalog(), filters);
 }
 
 export async function getTitle(slug: string): Promise<CatalogTitle | undefined> {
