@@ -155,13 +155,25 @@ will proceed through independently testable pull requests:
 7. Administration and governance: curation, analytics, takedowns, and audit tools.
 8. Release hardening: performance, accessibility, security, recovery, and end-to-end QA.
 
-## Planned local development
+## Local development and deployment
 
-The application scaffold will be added in a dedicated feature branch. Development
-will require Node.js 20.9 or newer, pnpm, a Supabase project, a Mux environment,
-and configured Vercel and Resend accounts. Environment values will be documented in
-an example file; real credentials must remain in ignored local files and deployment
-secret stores.
+AniVerse runs completely in local demo mode without provider accounts. Local browser
+storage persists creator, playback, library, community, and moderation workflows.
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Use Node.js 22 or newer. Copy `.env.example` to the ignored `.env.local` only when
+connecting providers. Supabase, Mux, Resend, and Sentry initialize only when their
+credentials exist; secrets never use the `NEXT_PUBLIC_` prefix. Resend defaults to
+its testing sender until a production domain is verified.
+
+Before release, run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
+Vercel Git integration can deploy `main`; configure the variables from `.env.example`
+separately for Preview and Production. After deployment, verify `/api/health`, inspect
+Vercel runtime errors, confirm Sentry receives a test event, and verify Resend delivery.
 
 ## License and content policy
 
