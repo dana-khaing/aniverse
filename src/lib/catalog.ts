@@ -1,4 +1,7 @@
 export type CatalogTitle = { slug:string; name:string; nativeName:string; synopsis:string; genre:string[]; year:number; score:number; episodes:number; format:"TV"|"Movie"; tone:string; studio:string; status:string };
+export type SearchFilters = { query?:string; genre?:string; year?:number; format?:CatalogTitle["format"]|"all"; status?:string; studio?:string; minScore?:number; sort?:"popular"|"score"|"newest"|"title" };
+export type SearchSuggestion = Pick<CatalogTitle,"slug"|"name"|"nativeName"|"studio"|"tone">;
+export type Recommendation = { title:CatalogTitle; score:number; reason:string };
 
 export const catalog: CatalogTitle[] = [
   {slug:"echoes-of-asteria",name:"Echoes of Asteria",nativeName:"アステリアの残響",synopsis:"When the stars begin to disappear, a young cartographer discovers that her forgotten memories may be the key to saving two worlds.",genre:["Fantasy","Adventure","Drama"],year:2026,score:9.2,episodes:12,format:"TV",tone:"violet",studio:"Lumen Works",status:"Airing"},
@@ -11,3 +14,20 @@ export const catalog: CatalogTitle[] = [
 
 export function searchCatalog(query="", genre="all") { const q=query.trim().toLowerCase(); return catalog.filter(t=>(!q||`${t.name} ${t.nativeName} ${t.synopsis} ${t.genre.join(" ")}`.toLowerCase().includes(q))&&(genre==="all"||t.genre.some(g=>g.toLowerCase()===genre.toLowerCase()))); }
 export function getTitle(slug:string){return catalog.find(t=>t.slug===slug);}
+
+export function filterCatalog(titles:CatalogTitle[], filters:SearchFilters={}) {
+  const q=filters.query?.trim().toLowerCase()??"";
+  const result=titles.filter((title)=>(!q||`${title.name} ${title.nativeName} ${title.synopsis} ${title.genre.join(" ")} ${title.studio}`.toLowerCase().includes(q))&&(!filters.genre||filters.genre==="all"||title.genre.some((genre)=>genre.toLowerCase()===filters.genre?.toLowerCase()))&&(!filters.year||title.year===filters.year)&&(!filters.format||filters.format==="all"||title.format===filters.format)&&(!filters.status||filters.status==="all"||title.status.toLowerCase()===filters.status.toLowerCase())&&(!filters.studio||filters.studio==="all"||title.studio===filters.studio)&&(!filters.minScore||title.score>=filters.minScore));
+  return result.toSorted((a,b)=>filters.sort==="title"?a.name.localeCompare(b.name):filters.sort==="newest"?b.year-a.year:b.score-a.score);
+}
+
+export function suggestCatalog(titles:CatalogTitle[], query:string, limit=6):SearchSuggestion[]{
+  const q=query.trim().toLowerCase(); if(q.length<2)return [];
+  return titles.filter((title)=>`${title.name} ${title.nativeName} ${title.studio}`.toLowerCase().includes(q)).slice(0,limit).map(({slug,name,nativeName,studio,tone})=>({slug,name,nativeName,studio,tone}));
+}
+
+export function recommendCatalog(titles:CatalogTitle[], watchedSlugs:string[], limit=6):Recommendation[]{
+  const watched=titles.filter((title)=>watchedSlugs.includes(title.slug));
+  const genres=new Set(watched.flatMap((title)=>title.genre)); const studios=new Set(watched.map((title)=>title.studio));
+  return titles.filter((title)=>!watchedSlugs.includes(title.slug)).map((title)=>{const genreMatches=title.genre.filter((genre)=>genres.has(genre)).length;const studioMatch=studios.has(title.studio);return {title,score:title.score+genreMatches*2+(studioMatch?1.5:0),reason:studioMatch?`Because you watched titles from ${title.studio}`:genreMatches?`Because you watched ${title.genre.find((genre)=>genres.has(genre))}`:"Popular on AniVerse"};}).toSorted((a,b)=>b.score-a.score).slice(0,limit);
+}
