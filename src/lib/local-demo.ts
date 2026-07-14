@@ -66,10 +66,12 @@ export type CreatorWorkspace = {
   }>;
   uploads: Array<{
     id: string;
+    assetId?: string;
     filename: string;
     title: string;
     status: "Ready" | "Processing";
     subtitles: string[];
+    size?: number;
   }>;
 };
 
