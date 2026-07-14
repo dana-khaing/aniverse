@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Captions,
   Heart,
@@ -12,8 +12,12 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  Maximize,
+  PictureInPicture,
 } from "lucide-react";
 import { initialLibraryState, useLocalDemoState } from "@/lib/local-demo";
+import { getAllRecords } from "@/lib/local-data/database";
+import type { StoredMedia } from "@/lib/local-data/types";
 
 type LocalPlayerProps = {
   slug: string;
@@ -29,6 +33,14 @@ export function LocalPlayer({
   totalEpisodes,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [source,setSource]=useState<string>();
+  const [speed,setSpeed]=useState(1);
+  const [quality,setQuality]=useState("Auto");
+  const [audio,setAudio]=useState("Japanese");
+  const [captions,setCaptions]=useState(true);
+  const [autoplay,setAutoplay]=useState(true);
+  const [subtitleSize,setSubtitleSize]=useState("Medium");
   const [library, setLibrary] = useLocalDemoState(
     "aniverse.library",
     initialLibraryState,
@@ -38,6 +50,12 @@ export function LocalPlayer({
   );
   const [position, setPosition] = useState(saved?.position ?? 0);
   const favorite = library.favorites.includes(slug);
+
+  useEffect(()=>{let objectUrl:string|undefined;getAllRecords<StoredMedia>("media").then((assets)=>{const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}).catch(()=>undefined);return()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);};},[slug]);
+  useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
+
+  function togglePlayback(){const video=videoRef.current;if(video)void(video.paused?video.play():video.pause());else setPlaying((value)=>!value);}
+  function seekTo(next:number){if(videoRef.current)videoRef.current.currentTime=next;saveProgress(next);}
 
   function saveProgress(next: number) {
     setPosition(next);
@@ -89,6 +107,7 @@ export function LocalPlayer({
         <Link href={`/anime/${slug}`}>Back to series</Link>
       </header>
       <section className="video-stage">
+        {source&&<video ref={videoRef} src={source} playsInline onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onTimeUpdate={(event)=>setPosition(Math.floor(event.currentTarget.currentTime))} onEnded={()=>{if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);}}/>}
         <div className="video-art">
           <span>{title.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
           <p>{playing ? "Playing local preview" : "Local secure preview"}</p>
@@ -96,7 +115,7 @@ export function LocalPlayer({
         <button
           className="center-play"
           aria-label={playing ? "Pause" : "Play"}
-          onClick={() => setPlaying(!playing)}
+          onClick={togglePlayback}
         >
           {playing ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
         </button>
@@ -114,7 +133,7 @@ export function LocalPlayer({
               <button aria-label="Previous episode"><SkipBack /></button>
               <button
                 aria-label={playing ? "Pause" : "Play"}
-                onClick={() => setPlaying(!playing)}
+                onClick={togglePlayback}
               >
                 {playing ? <Pause /> : <Play />}
               </button>
@@ -122,10 +141,11 @@ export function LocalPlayer({
               <Volume2 />
             </span>
             <time>{Math.floor(position / 60)}:{String(position % 60).padStart(2, "0")} / 24:00</time>
-            <span><Captions /><Settings /></span>
+            <span><button aria-label="Picture in picture" onClick={()=>{const video=videoRef.current;if(video&&document.pictureInPictureEnabled)void video.requestPictureInPicture();}}><PictureInPicture/></button><button aria-label="Playback speed" onClick={()=>{const next=speed>=2?0.5:speed+0.5;setSpeed(next);if(videoRef.current)videoRef.current.playbackRate=next;}}>{speed}×</button><button aria-label="Fullscreen" onClick={()=>{if(videoRef.current)void videoRef.current.requestFullscreen();}}><Maximize/></button><button aria-label="Toggle captions" className={captions?"active":""} onClick={()=>setCaptions(!captions)}><Captions /></button><Settings /></span>
           </div>
         </div>
       </section>
+      <section className="player-options" aria-label="Playback options"><div className="chapter-strip"><button onClick={()=>seekTo(0)}>Opening <span>00:00</span></button><button onClick={()=>seekTo(90)}>Chapter 1 <span>01:30</span></button><button onClick={()=>seekTo(690)}>Chapter 2 <span>11:30</span></button><button onClick={()=>seekTo(1350)}>Ending <span>22:30</span></button></div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>setQuality(event.target.value)}><option>Auto</option><option>1080p</option><option>720p</option><option>480p</option></select></label><label>Audio<select aria-label="Audio track" value={audio} onChange={(event)=>setAudio(event.target.value)}><option>Japanese</option><option>English</option></select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{position>0&&position<90&&<button className="skip-segment" onClick={()=>seekTo(90)}>Skip intro</button>}{position>=1350&&<button className="skip-segment" onClick={()=>seekTo(1440)}>Skip outro</button>}</section>
       <section className="watch-info">
         <div>
           <p>EPISODE {episode} OF {totalEpisodes}</p>
