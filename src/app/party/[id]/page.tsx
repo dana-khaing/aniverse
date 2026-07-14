@@ -1,0 +1,1 @@
+import { PublicHeader } from "@/components/catalog/public-header";import { WatchParty } from "@/components/community/watch-party";export default function PartyPage(){return <><PublicHeader/><WatchParty/></>}
