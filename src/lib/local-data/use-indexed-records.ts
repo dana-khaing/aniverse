@@ -19,7 +19,19 @@ export function useIndexedRecords<T extends { id: string }>(store: StoreName) {
     }
   }, [store]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    let active = true;
+    getAllRecords<T>(store).then((nextRecords) => {
+      if (!active) return;
+      setRecords(nextRecords);
+      setError(undefined);
+    }).catch((reason: unknown) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Local storage failed");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [store]);
 
   const save = useCallback(async (record: T) => {
     await putRecord(store, record);
@@ -33,4 +45,3 @@ export function useIndexedRecords<T extends { id: string }>(store: StoreName) {
 
   return { records, loading, error, save, remove, refresh };
 }
-
