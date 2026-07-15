@@ -1,1 +1,1 @@
-import { PublicHeader } from "@/components/catalog/public-header";import { WatchParty } from "@/components/community/watch-party";export default function PartyPage(){return <><PublicHeader/><WatchParty/></>}
+import { PublicHeader } from "@/components/catalog/public-header";import { WatchParty } from "@/components/community/watch-party";export default async function PartyPage({params}:{params:Promise<{id:string}>}){const {id}=await params;return <><PublicHeader/><WatchParty partyId={id}/></>}
