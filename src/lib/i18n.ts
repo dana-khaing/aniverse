@@ -1,0 +1,2 @@
+export const locales=["en","ja"] as const;export type Locale=typeof locales[number];
+export const messages={en:{home:"Home",browse:"Browse",schedule:"Schedule",community:"Community",eyebrow:"STORIES BEYOND THE STARS",title:"Discover your next universe",copy:"Original animation, independent creators, and communities built around stories worth sharing.",cta:"Browse anime"},ja:{home:"ホーム",browse:"作品を探す",schedule:"配信予定",community:"コミュニティ",eyebrow:"星を越える物語",title:"次の世界を見つけよう",copy:"オリジナルアニメ、独立系クリエイター、そして物語を愛するコミュニティ。",cta:"アニメを探す"}} as const;
