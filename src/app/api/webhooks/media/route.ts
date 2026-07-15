@@ -1,0 +1,2 @@
+import { verifyWebhook } from "@/lib/security";
+export async function POST(request:Request){const body=await request.text();const valid=await verifyWebhook({body,signature:request.headers.get("x-aniverse-signature")??"",timestamp:request.headers.get("x-aniverse-timestamp")??"",id:request.headers.get("x-aniverse-event-id")??"",secret:process.env.WEBHOOK_SECRET??"local-development-secret"});if(!valid)return Response.json({error:"Invalid or replayed webhook"},{status:401});return Response.json({received:true});}
