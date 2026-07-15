@@ -101,6 +101,9 @@ export async function exportLocalData() {
   return { manifest, data };
 }
 
+export async function importLocalData(backup:{manifest:BackupManifest;data:Record<string,unknown[]>}) {if(backup.manifest?.format!=="aniverse-backup"||backup.manifest.version!==1)throw new Error("Unsupported AniVerse backup");for(const store of STORE_NAMES)for(const record of backup.data[store]??[])await putRecord(store,record);}
+export async function deleteAllLocalData(){const database=await openAniVerseDatabase();database.close();databasePromise=undefined;await new Promise<void>((resolve,reject)=>{const request=indexedDB.deleteDatabase(DATABASE_NAME);request.onsuccess=()=>resolve();request.onerror=()=>reject(request.error);request.onblocked=()=>reject(new Error("Close other AniVerse tabs and try again"));});}
+
 export async function migrateLegacyLocalStorage() {
   if (typeof window === "undefined") return false;
   const marker = await getRecord<{ id: string; value: boolean }>("settings", "legacy-migration-v1");
