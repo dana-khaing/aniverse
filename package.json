@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
+    ,"backup:validate": "node scripts/validate-backup.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "10.65.0",
