@@ -1,0 +1,1 @@
+import webPush from "web-push";const keys=webPush.generateVAPIDKeys();console.log(`NEXT_PUBLIC_VAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\nVAPID_SUBJECT=mailto:admin@example.com`);
