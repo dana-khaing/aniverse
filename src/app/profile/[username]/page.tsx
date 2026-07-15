@@ -1,0 +1,1 @@
+import { PublicHeader } from "@/components/catalog/public-header";import { PublicProfile } from "@/components/community/public-profile";export default function ProfilePage(){return <><PublicHeader/><PublicProfile/></>}
