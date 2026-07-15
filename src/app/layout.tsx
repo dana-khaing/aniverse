@@ -37,7 +37,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <LocalDataProvider>{children}<PwaProvider/></LocalDataProvider>
+        <a className="skip-link" href="#main-content">Skip to main content</a>
+        <div id="main-content"><LocalDataProvider>{children}<PwaProvider/></LocalDataProvider></div>
         <Analytics />
         <SpeedInsights />
       </body>
