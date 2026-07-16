@@ -1,18 +1,17 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bell,
   CalendarDays,
   ChevronRight,
   Clock3,
   Compass,
   Flame,
-  Menu,
   Play,
   Search,
   Sparkles,
   Star,
 } from "lucide-react";
+import { Brand, HeaderActions, MobileDock } from "@/components/catalog/site-navigation";
 
 const shows = [
   { title: "Echoes of Asteria", genre: "Fantasy", score: "9.2", episode: "12", tone: "violet", mark: "EA" },
@@ -29,15 +28,6 @@ const schedule = [
   { day: "WED", date: "10", title: "Garden of Spirits", time: "17:00" },
   { day: "THU", date: "11", title: "Paper Moons", time: "19:30" },
 ];
-
-function Brand() {
-  return (
-    <Link className="brand" href="/" aria-label="AniVerse home">
-      <span className="brand-orbit"><span /></span>
-      <span>Ani<span>Verse</span></span>
-    </Link>
-  );
-}
 
 function ShowCard({ show, rank }: { show: (typeof shows)[number]; rank?: number }) {
   return (
@@ -63,12 +53,7 @@ export default function Home() {
           <Link className="active" href="/">Home</Link><Link href="/browse">Browse</Link>
           <Link href="/schedule">Schedule</Link><Link href="/community">Community</Link>
         </nav>
-        <div className="header-actions">
-          <button className="icon-button" aria-label="Search"><Search size={19} /></button>
-          <button className="icon-button hide-mobile" aria-label="Notifications"><Bell size={19} /><i /></button>
-          <Link className="sign-in" href="/sign-in">Sign in</Link>
-          <button className="icon-button mobile-menu" aria-label="Open menu"><Menu size={21} /></button>
-        </div>
+        <HeaderActions />
       </header>
 
       <main>
@@ -120,6 +105,7 @@ export default function Home() {
       </main>
 
       <footer><Brand /><p>Stories worth discovering. Creators worth supporting.</p><div><Link href="/about">About</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/takedown">Takedown</Link></div><span>© 2026 AniVerse</span></footer>
+      <MobileDock />
     </div>
   );
 }
