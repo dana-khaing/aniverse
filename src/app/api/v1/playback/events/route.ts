@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { consumeRateLimit } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const schema = z.object({ slug:z.string().min(1), episode:z.number().int().positive(), eventType:z.enum(["start","progress","seek","complete"]), position:z.number().int().nonnegative(), duration:z.number().int().positive() });
 
 export async function POST(request:Request){
+  if(!isSupabaseConfigured())return new Response(null,{status:204});
   const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return new Response(null,{status:204});
   if(!consumeRateLimit(`playback:${user.id}`,60,1))return Response.json({error:"Too many playback events"},{status:429});
   const parsed=schema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return Response.json({error:"Invalid playback event"},{status:400});

@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const schema = z.object({ personalizationEnabled: z.boolean().optional(), playbackAnalyticsEnabled: z.boolean().optional() }).refine((value) => Object.keys(value).length > 0);
 
 export async function GET() {
+  if (!isSupabaseConfigured()) return Response.json({ error: "Cloud preferences are unavailable" }, { status: 503 });
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
   const { data } = await supabase.from("user_preferences").select("personalization_enabled,playback_analytics_enabled").eq("user_id", user.id).maybeSingle();
@@ -11,6 +13,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (!isSupabaseConfigured()) return new Response(null, { status: 204 });
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
