@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   Captions,
-  Heart,
-  ListPlus,
   Pause,
   Play,
   Settings,
@@ -15,7 +13,8 @@ import {
   Maximize,
   PictureInPicture,
 } from "lucide-react";
-import { initialLibraryState, useLocalDemoState } from "@/lib/local-demo";
+import { useLibrary } from "@/lib/use-library";
+import { TitleLibraryActions } from "@/components/library/title-library-actions";
 import { getAllRecords } from "@/lib/local-data/database";
 import type { StoredMedia } from "@/lib/local-data/types";
 
@@ -43,15 +42,11 @@ export function LocalPlayer({
   const [captions,setCaptions]=useState(true);
   const [autoplay,setAutoplay]=useState(true);
   const [subtitleSize,setSubtitleSize]=useState("Medium");
-  const [library, setLibrary] = useLocalDemoState(
-    "aniverse.library",
-    initialLibraryState,
-  );
+  const { library, dispatch } = useLibrary();
   const saved = library.progress.find(
     (item) => item.slug === slug && item.episode === episode,
   );
   const [position, setPosition] = useState(saved?.position ?? 0);
-  const favorite = library.favorites.includes(slug);
 
   useEffect(()=>{let objectUrl:string|undefined;let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string};if(!cancelled)setSource(data.url);return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl);};},[managedEpisodeId,slug]);
   useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let destroy:(()=>void)|undefined;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;}else{void import("hls.js").then(({default:Hls})=>{if(!Hls.isSupported())return;const hls=new Hls({enableWorker:true});hls.loadSource(source);hls.attachMedia(video);destroy=()=>hls.destroy();});}return()=>destroy?.();},[source]);
@@ -62,42 +57,15 @@ export function LocalPlayer({
 
   function saveProgress(next: number) {
     setPosition(next);
-    setLibrary((current) => ({
-      ...current,
-      progress: [
-        {
+    void dispatch({ type: "save-progress", progress: {
           slug,
           title,
           episode,
           position: next,
-          duration: 1440,
+          duration: Math.max(1, Math.floor(videoRef.current?.duration || 1440)),
           watchedAt: new Date().toISOString(),
-        },
-        ...current.progress.filter(
-          (item) => !(item.slug === slug && item.episode === episode),
-        ),
-      ],
-    }));
-  }
-
-  function toggleFavorite() {
-    setLibrary((current) => ({
-      ...current,
-      favorites: favorite
-        ? current.favorites.filter((item) => item !== slug)
-        : [...current.favorites, slug],
-    }));
-  }
-
-  function addToFirstList() {
-    setLibrary((current) => ({
-      ...current,
-      lists: current.lists.map((list, index) =>
-        index === 0
-          ? { ...list, titles: Array.from(new Set([...list.titles, slug])) }
-          : list,
-      ),
-    }));
+          completed: next / Math.max(1, videoRef.current?.duration || 1440) >= .9,
+        }});
   }
 
   return (
@@ -155,12 +123,7 @@ export function LocalPlayer({
           <h1>{title}</h1>
           <span>Where the sky remembers · English / Japanese · CC</span>
         </div>
-        <div>
-          <button className={favorite ? "active" : ""} onClick={toggleFavorite}>
-            <Heart fill={favorite ? "currentColor" : "none"} />Favorite
-          </button>
-          <button onClick={addToFirstList}><ListPlus />Add to list</button>
-        </div>
+        <TitleLibraryActions slug={slug} compact />
       </section>
       <nav className="episode-nav">
         {episode > 1 ? (
