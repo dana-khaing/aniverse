@@ -24,6 +24,7 @@ type LocalPlayerProps = {
   title: string;
   episode: number;
   totalEpisodes: number;
+  managedEpisodeId?: string;
 };
 
 export function LocalPlayer({
@@ -31,6 +32,7 @@ export function LocalPlayer({
   title,
   episode,
   totalEpisodes,
+  managedEpisodeId,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,7 +53,8 @@ export function LocalPlayer({
   const [position, setPosition] = useState(saved?.position ?? 0);
   const favorite = library.favorites.includes(slug);
 
-  useEffect(()=>{let objectUrl:string|undefined;getAllRecords<StoredMedia>("media").then((assets)=>{const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}).catch(()=>undefined);return()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);};},[slug]);
+  useEffect(()=>{let objectUrl:string|undefined;let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string};if(!cancelled)setSource(data.url);return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl);};},[managedEpisodeId,slug]);
+  useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let destroy:(()=>void)|undefined;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;}else{void import("hls.js").then(({default:Hls})=>{if(!Hls.isSupported())return;const hls=new Hls({enableWorker:true});hls.loadSource(source);hls.attachMedia(video);destroy=()=>hls.destroy();});}return()=>destroy?.();},[source]);
   useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
 
   function togglePlayback(){const video=videoRef.current;if(video)void(video.paused?video.play():video.pause());else setPlaying((value)=>!value);}
@@ -107,7 +110,7 @@ export function LocalPlayer({
         <Link href={`/anime/${slug}`}>Back to series</Link>
       </header>
       <section className="video-stage">
-        {source&&<video ref={videoRef} src={source} playsInline onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onTimeUpdate={(event)=>setPosition(Math.floor(event.currentTarget.currentTime))} onEnded={()=>{if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);}}/>}
+        {source&&<video ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onTimeUpdate={(event)=>setPosition(Math.floor(event.currentTarget.currentTime))} onEnded={()=>{if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);}}/>}
         <div className="video-art">
           <span>{title.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
           <p>{playing ? "Playing local preview" : "Local secure preview"}</p>
