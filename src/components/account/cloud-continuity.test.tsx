@@ -1,0 +1,4 @@
+import { render,screen } from "@testing-library/react";
+import { afterEach,describe,expect,it,vi } from "vitest";
+import { CloudContinuity } from "./cloud-continuity";
+describe("CloudContinuity",()=>{afterEach(()=>vi.unstubAllGlobals());it("shows encrypted backups and verified session controls",async()=>{vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{const url=String(input);if(url.includes("backups"))return new Response(JSON.stringify({backups:[]}));if(url.includes("sessions"))return new Response(JSON.stringify({sessions:[]}));return new Response(null,{status:204})}));render(<CloudContinuity/>);expect(screen.getByRole("heading",{name:"Backups and active sessions"})).toBeInTheDocument();expect(screen.getByText(/AES-256-GCM/)).toBeInTheDocument();expect(screen.getByRole("button",{name:/Sign out others/})).toBeInTheDocument()})});
