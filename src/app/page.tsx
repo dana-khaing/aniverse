@@ -1,18 +1,18 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Bell,
   CalendarDays,
   ChevronRight,
   Clock3,
   Compass,
+  Crown,
   Flame,
-  Menu,
   Play,
   Search,
   Sparkles,
   Star,
 } from "lucide-react";
+import { Brand, HeaderActions, MobileDock } from "@/components/catalog/site-navigation";
 
 const shows = [
   { title: "Echoes of Asteria", genre: "Fantasy", score: "9.2", episode: "12", tone: "violet", mark: "EA" },
@@ -29,15 +29,6 @@ const schedule = [
   { day: "WED", date: "10", title: "Garden of Spirits", time: "17:00" },
   { day: "THU", date: "11", title: "Paper Moons", time: "19:30" },
 ];
-
-function Brand() {
-  return (
-    <Link className="brand" href="/" aria-label="AniVerse home">
-      <span className="brand-orbit"><span /></span>
-      <span>Ani<span>Verse</span></span>
-    </Link>
-  );
-}
 
 function ShowCard({ show, rank }: { show: (typeof shows)[number]; rank?: number }) {
   return (
@@ -63,12 +54,7 @@ export default function Home() {
           <Link className="active" href="/">Home</Link><Link href="/browse">Browse</Link>
           <Link href="/schedule">Schedule</Link><Link href="/community">Community</Link>
         </nav>
-        <div className="header-actions">
-          <button className="icon-button" aria-label="Search"><Search size={19} /></button>
-          <button className="icon-button hide-mobile" aria-label="Notifications"><Bell size={19} /><i /></button>
-          <Link className="sign-in" href="/sign-in">Sign in</Link>
-          <button className="icon-button mobile-menu" aria-label="Open menu"><Menu size={21} /></button>
-        </div>
+        <HeaderActions />
       </header>
 
       <main>
@@ -95,6 +81,8 @@ export default function Home() {
             <div className="trending-search"><Flame size={15} /> Trending: <Link href="/search?q=asteria">Asteria</Link><Link href="/search?q=neon">Neon Ronin</Link><Link href="/search?q=skybound">Skybound</Link></div>
           </section>
 
+          <nav className="genre-rail" aria-label="Popular genres"><span>Explore</span>{["Action","Romance","Fantasy","Sci-fi","Mystery","Comedy","Drama"].map((genre)=><Link key={genre} href={`/browse?genre=${encodeURIComponent(genre)}`}>{genre}</Link>)}<Link className="genre-more" href="/browse">All genres <ArrowRight size={13}/></Link></nav>
+
           <section className="content-section">
             <div className="section-heading"><div><span className="section-icon"><Flame size={18} /></span><div><p>WHAT EVERYONE IS WATCHING</p><h2>Trending now</h2></div></div><Link href="/trending">View all <ArrowRight size={16} /></Link></div>
             <div className="card-grid">{shows.slice(0, 5).map((show, index) => <ShowCard key={show.title} rank={index + 1} show={show} />)}</div>
@@ -111,6 +99,14 @@ export default function Home() {
             </aside>
           </section>
 
+          <section className="content-section chart-section">
+            <div className="chart-main">
+              <div className="section-heading"><div><span className="section-icon gold"><Crown size={18}/></span><div><p>THE COMMUNITY CHART</p><h2>Top 10 this week</h2></div></div><Link href="/charts/seasonal">See chart <ArrowRight size={16}/></Link></div>
+              <div className="ranking-list">{shows.slice(0,5).map((show,index)=><Link href={`/anime/${show.title.toLowerCase().replaceAll(" ","-")}`} key={show.title}><strong>{String(index+1).padStart(2,"0")}</strong><div className={`ranking-thumb poster-${show.tone}`}><span>{show.mark}</span></div><div><h3>{show.title}</h3><p>{show.genre} · TV</p></div><span className="ranking-score"><Star size={12} fill="currentColor"/>{show.score}</span><ChevronRight size={15}/></Link>)}</div>
+            </div>
+            <aside className="creator-spotlight"><p>CREATOR SPOTLIGHT</p><h2>Stories made<br/>to be remembered.</h2><span>Meet independent studios building the next generation of animation.</span><div className="studio-orbits" aria-hidden="true"><i/><i/><i/></div><Link href="/creator">Explore creators <ArrowRight size={15}/></Link></aside>
+          </section>
+
           <section className="browse-banner">
             <div className="banner-orb"><Compass size={42} /></div>
             <div><p>YOUR NEXT OBSESSION IS WAITING</p><h2>Explore every universe</h2><span>Browse curated collections across fantasy, romance, action, sci-fi and more.</span></div>
@@ -120,6 +116,7 @@ export default function Home() {
       </main>
 
       <footer><Brand /><p>Stories worth discovering. Creators worth supporting.</p><div><Link href="/about">About</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/takedown">Takedown</Link></div><span>© 2026 AniVerse</span></footer>
+      <MobileDock />
     </div>
   );
 }
