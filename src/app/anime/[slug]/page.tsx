@@ -1,3 +1,106 @@
-import Link from "next/link";import { notFound } from "next/navigation";import { Calendar,Clock3,Play,Plus,Star } from "lucide-react";import { PublicHeader } from "@/components/catalog/public-header";import { catalog } from "@/lib/catalog";import { getTitle } from "@/lib/catalog-repository";
-export function generateStaticParams(){return catalog.map(({slug})=>({slug}))}
-export default async function TitlePage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const title=await getTitle(slug);if(!title)notFound();return <><PublicHeader/><main className="detail-page"><section className={`detail-hero detail-${title.tone}`}><div className="detail-backdrop"/><div className="detail-inner"><div className={`detail-poster poster-${title.tone}`}><span>{title.name.split(" ").map(x=>x[0]).join("")}</span></div><div className="detail-copy"><p className="native-title">{title.nativeName}</p><h1>{title.name}</h1><div className="detail-meta"><b><Star fill="currentColor" size={15}/>{title.score}</b><span>{title.format}</span><span><Calendar size={14}/>{title.year}</span><span><Clock3 size={14}/>24m</span><i>HD</i><i>CC</i></div><p>{title.synopsis}</p><div className="genre-pills">{title.genre.map(g=><span key={g}>{g}</span>)}</div><div className="detail-actions"><Link href={`/watch/${title.slug}/1`}><Play size={17} fill="currentColor"/>Watch episode 1</Link><button><Plus size={17}/>Add to list</button></div></div></div></section><section className="episode-section"><div><p>SEASON 1</p><h2>Episodes</h2></div><div className="episode-list">{Array.from({length:title.episodes},(_,i)=><Link key={i} href={`/watch/${title.slug}/${i+1}`}><b>{String(i+1).padStart(2,"0")}</b><div><h3>{i===0?"Where the sky remembers":`Episode ${i+1}`}</h3><p>{i===0?"A mysterious map falls from a starless sky.":"Continue the story."}</p></div><span>24m</span><Play size={16}/></Link>)}</div></section></main></>}
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Calendar, Clock3, Play, Plus, Star } from "lucide-react";
+import { PublicHeader } from "@/components/catalog/public-header";
+import { CreatorTip } from "@/components/payments/creator-tip";
+import { catalog } from "@/lib/catalog";
+import { getTitle } from "@/lib/catalog-repository";
+export function generateStaticParams() {
+  return catalog.map(({ slug }) => ({ slug }));
+}
+export default async function TitlePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const title = await getTitle(slug);
+  if (!title) notFound();
+  return (
+    <>
+      <PublicHeader />
+      <main className="detail-page">
+        <section className={`detail-hero detail-${title.tone}`}>
+          <div className="detail-backdrop" />
+          <div className="detail-inner">
+            <div className={`detail-poster poster-${title.tone}`}>
+              <span>
+                {title.name
+                  .split(" ")
+                  .map((x) => x[0])
+                  .join("")}
+              </span>
+            </div>
+            <div className="detail-copy">
+              <p className="native-title">{title.nativeName}</p>
+              <h1>{title.name}</h1>
+              <div className="detail-meta">
+                <b>
+                  <Star fill="currentColor" size={15} />
+                  {title.score}
+                </b>
+                <span>{title.format}</span>
+                <span>
+                  <Calendar size={14} />
+                  {title.year}
+                </span>
+                <span>
+                  <Clock3 size={14} />
+                  24m
+                </span>
+                <i>HD</i>
+                <i>CC</i>
+              </div>
+              <p>{title.synopsis}</p>
+              <div className="genre-pills">
+                {title.genre.map((g) => (
+                  <span key={g}>{g}</span>
+                ))}
+              </div>
+              <div className="detail-actions">
+                <Link href={`/watch/${title.slug}/1`}>
+                  <Play size={17} fill="currentColor" />
+                  Watch episode 1
+                </Link>
+                <button>
+                  <Plus size={17} />
+                  Add to list
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="episode-section">
+          <div>
+            <p>SEASON 1</p>
+            <h2>Episodes</h2>
+          </div>
+          <div className="episode-list">
+            {Array.from({ length: title.episodes }, (_, i) => (
+              <Link key={i} href={`/watch/${title.slug}/${i + 1}`}>
+                <b>{String(i + 1).padStart(2, "0")}</b>
+                <div>
+                  <h3>
+                    {i === 0 ? "Where the sky remembers" : `Episode ${i + 1}`}
+                  </h3>
+                  <p>
+                    {i === 0
+                      ? "A mysterious map falls from a starless sky."
+                      : "Continue the story."}
+                  </p>
+                </div>
+                <span>24m</span>
+                <Play size={16} />
+              </Link>
+            ))}
+          </div>
+        </section>
+        {title.creatorTeamId && (
+          <section className="support-section">
+            <CreatorTip creatorTeamId={title.creatorTeamId} titleId={title.id} creatorName={title.studio} />
+          </section>
+        )}
+      </main>
+    </>
+  );
+}

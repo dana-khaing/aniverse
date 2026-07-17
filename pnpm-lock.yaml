@@ -38,6 +38,9 @@ dependencies:
   resend:
     specifier: 6.17.2
     version: 6.17.2
+  stripe:
+    specifier: ^22.3.2
+    version: 22.3.2(@types/node@20.19.43)
   web-push:
     specifier: 3.6.7
     version: 3.6.7
@@ -5710,6 +5713,18 @@ packages:
     dependencies:
       js-tokens: 9.0.1
     dev: true
+
+  /stripe@22.3.2(@types/node@20.19.43):
+    resolution: {integrity: sha512-O13QOvgEIQvDlTy6Ubb5kB980wpbhmoZNsgCXKILjCMZS67f+bW+6w99k3gnSi/N1lkryoj1WYdpGT5Wc5edjg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+    dependencies:
+      '@types/node': 20.19.43
+    dev: false
 
   /styled-jsx@5.1.6(@babel/core@7.29.7)(react@19.2.4):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
