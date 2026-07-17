@@ -1,10 +1,12 @@
 import { listCatalog } from "@/lib/catalog-repository";
 import { recommendCatalog } from "@/lib/catalog";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export async function GET() {
   const titles = await listCatalog();
   const popular = () => recommendCatalog(titles, [], 6);
+  if (!isSupabaseConfigured()) return Response.json({ personalized: false, recommendations: popular() });
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ personalized: false, recommendations: popular() });
   const { data: preferences } = await supabase.from("user_preferences").select("personalization_enabled").eq("user_id", user.id).maybeSingle();

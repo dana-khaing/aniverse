@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { aggregatePlayback,type PlaybackEventRow } from "@/lib/playback-analytics";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export async function GET(request:Request){
+  if(!isSupabaseConfigured())return Response.json({error:"Cloud analytics are unavailable"},{status:503});
   const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return Response.json({error:"Authentication required"},{status:401});
   const admin=getAdminClient();
   const[{data:owned},{data:memberships}]=await Promise.all([supabase.from("creator_teams").select("id").eq("created_by",user.id),supabase.from("creator_team_memberships").select("team_id,role").eq("user_id",user.id)]);
