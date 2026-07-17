@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Clock3,
   Compass,
+  Crown,
   Flame,
   Play,
   Search,
@@ -80,6 +81,8 @@ export default function Home() {
             <div className="trending-search"><Flame size={15} /> Trending: <Link href="/search?q=asteria">Asteria</Link><Link href="/search?q=neon">Neon Ronin</Link><Link href="/search?q=skybound">Skybound</Link></div>
           </section>
 
+          <nav className="genre-rail" aria-label="Popular genres"><span>Explore</span>{["Action","Romance","Fantasy","Sci-fi","Mystery","Comedy","Drama"].map((genre)=><Link key={genre} href={`/browse?genre=${encodeURIComponent(genre)}`}>{genre}</Link>)}<Link className="genre-more" href="/browse">All genres <ArrowRight size={13}/></Link></nav>
+
           <section className="content-section">
             <div className="section-heading"><div><span className="section-icon"><Flame size={18} /></span><div><p>WHAT EVERYONE IS WATCHING</p><h2>Trending now</h2></div></div><Link href="/trending">View all <ArrowRight size={16} /></Link></div>
             <div className="card-grid">{shows.slice(0, 5).map((show, index) => <ShowCard key={show.title} rank={index + 1} show={show} />)}</div>
@@ -94,6 +97,14 @@ export default function Home() {
               <div className="schedule-head"><div><CalendarDays size={19} /><div><p>THIS WEEK</p><h2>Release schedule</h2></div></div><Link href="/schedule">Full calendar</Link></div>
               <div className="schedule-list">{schedule.map((item) => <Link href="/schedule" key={item.day} className="schedule-item"><div className="date-box"><span>{item.day}</span><strong>{item.date}</strong></div><div><h3>{item.title}</h3><p>New episode · {item.time}</p></div><ChevronRight size={16} /></Link>)}</div>
             </aside>
+          </section>
+
+          <section className="content-section chart-section">
+            <div className="chart-main">
+              <div className="section-heading"><div><span className="section-icon gold"><Crown size={18}/></span><div><p>THE COMMUNITY CHART</p><h2>Top 10 this week</h2></div></div><Link href="/charts/seasonal">See chart <ArrowRight size={16}/></Link></div>
+              <div className="ranking-list">{shows.slice(0,5).map((show,index)=><Link href={`/anime/${show.title.toLowerCase().replaceAll(" ","-")}`} key={show.title}><strong>{String(index+1).padStart(2,"0")}</strong><div className={`ranking-thumb poster-${show.tone}`}><span>{show.mark}</span></div><div><h3>{show.title}</h3><p>{show.genre} · TV</p></div><span className="ranking-score"><Star size={12} fill="currentColor"/>{show.score}</span><ChevronRight size={15}/></Link>)}</div>
+            </div>
+            <aside className="creator-spotlight"><p>CREATOR SPOTLIGHT</p><h2>Stories made<br/>to be remembered.</h2><span>Meet independent studios building the next generation of animation.</span><div className="studio-orbits" aria-hidden="true"><i/><i/><i/></div><Link href="/creator">Explore creators <ArrowRight size={15}/></Link></aside>
           </section>
 
           <section className="browse-banner">
