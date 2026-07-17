@@ -12,6 +12,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
 type CatalogRow = {
+  id: string;
+  creator_team_id: string | null;
   slug: string;
   name: string;
   native_name: string | null;
@@ -30,6 +32,8 @@ function mapTitle(row: CatalogRow): CatalogTitle {
   const episodeNumbers = row.seasons.flatMap((season) => season.episodes);
 
   return {
+    id: row.id,
+    creatorTeamId: row.creator_team_id ?? undefined,
     slug: row.slug,
     name: row.name,
     nativeName: row.native_name ?? row.name,
@@ -52,7 +56,7 @@ async function queryCatalog() {
   const { data, error } = await supabase
     .from("titles")
     .select(
-      "slug,name,native_name,synopsis,format,release_year,average_score,poster_tone,status,studios(name),title_genres(genres(name)),seasons(episodes(number))",
+      "id,creator_team_id,slug,name,native_name,synopsis,format,release_year,average_score,poster_tone,status,studios(name),title_genres(genres(name)),seasons(episodes(number))",
     )
     .eq("status", "published")
     .order("popularity_score", { ascending: false });
