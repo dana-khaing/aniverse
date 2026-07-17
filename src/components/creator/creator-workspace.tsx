@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { FileVideo, Plus, Upload, UsersRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileVideo, LoaderCircle, Plus, RefreshCcw, Upload, UsersRound } from "lucide-react";
 import { initialCreatorWorkspace, useLocalDemoState } from "@/lib/local-demo";
 import { storeMedia } from "@/lib/local-data/database";
 import { useIndexedRecords } from "@/lib/local-data/use-indexed-records";
 import type { StoredMedia } from "@/lib/local-data/types";
 import { CreatorInsights } from "@/components/creator/creator-insights";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
 
 export function CreatorWorkspace() {
   const [workspace, setWorkspace] = useLocalDemoState(
@@ -15,11 +17,53 @@ export function CreatorWorkspace() {
   );
   const [newTitle, setNewTitle] = useState("");
   const [uploadError, setUploadError] = useState<string>();
+  const [studioError, setStudioError] = useState<string>();
+  const [studioBusy, setStudioBusy] = useState(false);
+  const cloud = isSupabaseConfigured();
   const {
     records: storedMedia,
     loading: mediaLoading,
     refresh: refreshMedia,
   } = useIndexedRecords<StoredMedia>("media");
+
+  async function loadStudio() {
+    if (!cloud) return;
+    setStudioBusy(true);
+    setStudioError(undefined);
+    const response = await fetch("/api/v1/creator/studio", { cache: "no-store" });
+    const data = await response.json().catch(() => ({})) as { workspace?: CreatorStudioWorkspace; error?: string };
+    if (response.ok && data.workspace) setWorkspace((current) => ({ ...current, team: data.workspace!.team, titles: data.workspace!.titles }));
+    else setStudioError(data.error ?? "The creator workspace could not be loaded.");
+    setStudioBusy(false);
+  }
+
+  useEffect(() => { const timeout = setTimeout(() => void loadStudio(), 0); return () => clearTimeout(timeout); }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function createTitle() {
+    const name = newTitle.trim();
+    if (!name) return;
+    if (!cloud) {
+      setWorkspace((current) => ({ ...current, titles: [...current.titles, { id: crypto.randomUUID(), name, status: "Draft", episodes: 0 }] }));
+      setNewTitle("");
+      return;
+    }
+    setStudioBusy(true);
+    const response = await fetch("/api/v1/creator/studio", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "create-title", name }) });
+    const data = await response.json().catch(() => ({})) as { title?: CreatorStudioWorkspace["titles"][number]; error?: string };
+    if (response.ok && data.title) { setWorkspace((current) => ({ ...current, titles: [...current.titles, data.title!] })); setNewTitle(""); }
+    else setStudioError(data.error ?? "The title could not be created.");
+    setStudioBusy(false);
+  }
+
+  async function addEpisode(titleId: string) {
+    if (!cloud) { setWorkspace((current) => ({ ...current, titles: current.titles.map((item) => item.id === titleId ? { ...item, episodes: item.episodes + 1 } : item) })); return; }
+    setStudioBusy(true);
+    const response = await fetch("/api/v1/creator/studio", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "add-episode", titleId }) });
+    const data = await response.json().catch(() => ({})) as { error?: string };
+    if (response.ok) setWorkspace((current) => ({ ...current, titles: current.titles.map((item) => item.id === titleId ? { ...item, episodes: item.episodes + 1 } : item) }));
+    else setStudioError(data.error ?? "The episode could not be created.");
+    setStudioBusy(false);
+  }
 
   async function uploadVideo(file: File) {
     const title = workspace.titles[0];
@@ -73,8 +117,12 @@ export function CreatorWorkspace() {
             <p>PUBLISHING WORKSPACE</p>
             <h1>{workspace.team.name}</h1>
           </div>
-          <span>Local demo mode</span>
+          <button className="studio-mode" onClick={() => void loadStudio()} disabled={!cloud || studioBusy}>
+            {studioBusy ? <LoaderCircle className="spin" /> : cloud ? <RefreshCcw /> : null}
+            {cloud ? "Cloud workspace" : "Local demo mode"}
+          </button>
         </header>
+        {studioError && <p className="form-error" role="alert">{studioError}</p>}
         <section id="overview" className="metric-grid">
           <article>
             <b>{workspace.titles.length}</b>
@@ -103,23 +151,7 @@ export function CreatorWorkspace() {
               <h2>Titles and episodes</h2>
             </div>
             <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!newTitle.trim()) return;
-                setWorkspace((current) => ({
-                  ...current,
-                  titles: [
-                    ...current.titles,
-                    {
-                      id: crypto.randomUUID(),
-                      name: newTitle.trim(),
-                      status: "Draft",
-                      episodes: 0,
-                    },
-                  ],
-                }));
-                setNewTitle("");
-              }}
+              onSubmit={(event) => { event.preventDefault(); void createTitle(); }}
             >
               <input
                 aria-label="New title name"
@@ -127,7 +159,7 @@ export function CreatorWorkspace() {
                 onChange={(event) => setNewTitle(event.target.value)}
                 placeholder="New title"
               />
-              <button>
+              <button disabled={studioBusy}>
                 <Plus size={15} />
                 Create
               </button>
@@ -153,16 +185,8 @@ export function CreatorWorkspace() {
                   {title.status}
                 </i>
                 <button
-                  onClick={() =>
-                    setWorkspace((current) => ({
-                      ...current,
-                      titles: current.titles.map((item) =>
-                        item.id === title.id
-                          ? { ...item, episodes: item.episodes + 1 }
-                          : item,
-                      ),
-                    }))
-                  }
+                  disabled={studioBusy}
+                  onClick={() => void addEpisode(title.id)}
                 >
                   Add episode
                 </button>
@@ -230,7 +254,7 @@ export function CreatorWorkspace() {
               <p>COLLABORATORS</p>
               <h2>Team access</h2>
             </div>
-            <button
+            {!cloud && <button
               onClick={() =>
                 setWorkspace((current) => ({
                   ...current,
@@ -249,7 +273,7 @@ export function CreatorWorkspace() {
             >
               <UsersRound size={15} />
               Invite demo member
-            </button>
+            </button>}
           </div>
           <div className="member-list">
             {workspace.team.members.map((member) => (

@@ -62,7 +62,7 @@ export type CreatorWorkspace = {
   titles: Array<{
     id: string;
     name: string;
-    status: "Draft" | "In review" | "Published";
+    status: "Draft" | "In review" | "Review" | "Scheduled" | "Published" | "Unpublished" | "Removed";
     episodes: number;
   }>;
   uploads: Array<{
