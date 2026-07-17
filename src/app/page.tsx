@@ -13,6 +13,7 @@ import {
   Star,
 } from "lucide-react";
 import { Brand, HeaderActions, MobileDock } from "@/components/catalog/site-navigation";
+import { PersonalizedRow } from "@/components/catalog/personalized-row";
 
 const shows = [
   { title: "Echoes of Asteria", genre: "Fantasy", score: "9.2", episode: "12", tone: "violet", mark: "EA" },
@@ -87,6 +88,8 @@ export default function Home() {
             <div className="section-heading"><div><span className="section-icon"><Flame size={18} /></span><div><p>WHAT EVERYONE IS WATCHING</p><h2>Trending now</h2></div></div><Link href="/trending">View all <ArrowRight size={16} /></Link></div>
             <div className="card-grid">{shows.slice(0, 5).map((show, index) => <ShowCard key={show.title} rank={index + 1} show={show} />)}</div>
           </section>
+
+          <PersonalizedRow />
 
           <section className="content-section split-section">
             <div className="latest-panel">
