@@ -20,6 +20,9 @@ dependencies:
   '@vercel/speed-insights':
     specifier: 2.0.0
     version: 2.0.0(next@16.2.10)(react@19.2.4)
+  hls.js:
+    specifier: ^1.6.15
+    version: 1.6.16
   lucide-react:
     specifier: ^1.24.0
     version: 1.24.0(react@19.2.4)
@@ -4102,6 +4105,10 @@ packages:
     dependencies:
       hermes-estree: 0.25.1
     dev: true
+
+  /hls.js@1.6.16:
+    resolution: {integrity: sha512-VSIRpLfRwlAAdGL4wiTucx2ScRipo0ed1FBatWkyt832jC4CReKstga6yIhYVwGu9LOBjuX9wzmRMeQdBJtzEA==}
+    dev: false
 
   /html-encoding-sniffer@4.0.0:
     resolution: {integrity: sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==}

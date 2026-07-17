@@ -11,9 +11,9 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
-  const { data: episode } = await supabase.from("episodes").select("id,title_id,titles!inner(creator_team_id)").eq("id", parsed.data.episodeId).single();
+  const { data: episode } = await supabase.from("episodes").select("id,seasons!inner(titles!inner(creator_team_id))").eq("id", parsed.data.episodeId).single();
   if (!episode) return Response.json({ error: "Episode not found" }, { status: 404 });
-  const teamId = (episode.titles as unknown as { creator_team_id: string | null }).creator_team_id;
+  const teamId = (episode.seasons as unknown as { titles: { creator_team_id: string | null } }).titles.creator_team_id;
   const { data: membership } = teamId ? await supabase.from("creator_team_memberships").select("role").eq("team_id", teamId).eq("user_id", user.id).in("role", ["owner", "editor", "uploader"]).maybeSingle() : { data: null };
   if (!membership) return Response.json({ error: "Creator upload permission required" }, { status: 403 });
   const { data: record, error: insertError } = await supabase.from("video_uploads").insert({ episode_id: parsed.data.episodeId, provider: "mux", filename: parsed.data.filename, bytes: parsed.data.bytes, status: "queued", created_by: user.id }).select("id").single();
