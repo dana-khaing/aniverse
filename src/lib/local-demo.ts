@@ -91,7 +91,7 @@ export const initialCreatorWorkspace: CreatorWorkspace = {
   uploads: [],
 };
 
-export type CreatorRelease = { id:string; title:string; kind:"Episode"|"Premiere"|"Trailer"|"Announcement"; scheduledAt:string; status:"Scheduled"|"Live"|"Draft" };
+export type CreatorRelease = { id:string; title:string; kind:"Episode"|"Premiere"|"Trailer"|"Announcement"; scheduledAt:string; status:"Scheduled"|"Live"|"Draft"|"Published"|"Cancelled" };
 export const initialCreatorReleases:CreatorRelease[]=[{id:"rel-1",title:"Echoes of Asteria · Episode 13",kind:"Premiere",scheduledAt:"2026-07-18T18:30",status:"Scheduled"},{id:"rel-2",title:"Starlight Archive teaser",kind:"Trailer",scheduledAt:"2026-07-20T17:00",status:"Draft"}];
 
 export type LibraryState = LibrarySnapshot;
