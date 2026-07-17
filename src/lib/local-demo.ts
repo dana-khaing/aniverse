@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import type { LibrarySnapshot } from "@/lib/library";
 
 const DEMO_EVENT = "aniverse:demo-change";
 
@@ -93,18 +94,7 @@ export const initialCreatorWorkspace: CreatorWorkspace = {
 export type CreatorRelease = { id:string; title:string; kind:"Episode"|"Premiere"|"Trailer"|"Announcement"; scheduledAt:string; status:"Scheduled"|"Live"|"Draft" };
 export const initialCreatorReleases:CreatorRelease[]=[{id:"rel-1",title:"Echoes of Asteria · Episode 13",kind:"Premiere",scheduledAt:"2026-07-18T18:30",status:"Scheduled"},{id:"rel-2",title:"Starlight Archive teaser",kind:"Trailer",scheduledAt:"2026-07-20T17:00",status:"Draft"}];
 
-export type LibraryState = {
-  progress: Array<{
-    slug: string;
-    title: string;
-    episode: number;
-    position: number;
-    duration: number;
-    watchedAt: string;
-  }>;
-  favorites: string[];
-  lists: Array<{ id: string; name: string; titles: string[] }>;
-};
+export type LibraryState = LibrarySnapshot;
 
 export const initialLibraryState: LibraryState = {
   progress: [
@@ -112,7 +102,8 @@ export const initialLibraryState: LibraryState = {
     { slug: "neon-ronin", title: "Neon Ronin", episode: 2, position: 1100, duration: 1440, watchedAt: "2026-07-12T21:10:00Z" },
   ],
   favorites: ["echoes-of-asteria", "paper-moons"],
-  lists: [{ id: "weekend", name: "Weekend watch", titles: ["skybound"] }],
+  watchlist: ["neon-ronin", "skybound"],
+  lists: [{ id: "weekend", name: "Weekend watch", titles: ["skybound"], position: 0, isPublic: false }],
 };
 
 export type CommunityState = {
