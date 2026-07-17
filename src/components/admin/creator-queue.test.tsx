@@ -1,0 +1,4 @@
+import { fireEvent,render,screen } from "@testing-library/react";
+import { beforeEach,describe,expect,it } from "vitest";
+import { CreatorQueue } from "./creator-queue";
+describe("creator approval queue",()=>{beforeEach(()=>{localStorage.clear();localStorage.setItem("aniverse.creator-application",JSON.stringify({channelName:"Moonframe",legalName:"Dana Lewis",portfolioUrl:"https://example.com",rightsSummary:"I own every distribution right for this original animation.",status:"submitted",submittedAt:"2026-07-17T12:00:00Z"}))});it("approves an application in local fallback mode",()=>{render(<CreatorQueue/>);expect(screen.getByText("Moonframe")).toBeInTheDocument();fireEvent.click(screen.getByRole("button",{name:"Approve creator"}));expect(localStorage.getItem("aniverse.creator-application")).toContain('"status":"approved"')})});

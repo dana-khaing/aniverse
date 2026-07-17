@@ -1,0 +1,2 @@
+export type CreatorApplicationRecord={id:string;userId:string;channelName:string;legalName:string;portfolioUrl:string;rightsSummary:string;status:"draft"|"submitted"|"approved"|"rejected";submittedAt?:string;reviewedAt?:string;reviewNotes?:string;applicantName?:string};
+export function creatorSlug(channelName:string,id:string){const base=channelName.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"creator";return `${base}-${id.slice(0,8)}`;}
