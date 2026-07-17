@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Clock3, Play, Plus, Star } from "lucide-react";
+import { Calendar, Clock3, Play, Star } from "lucide-react";
 import { PublicHeader } from "@/components/catalog/public-header";
+import { TitleLibraryActions } from "@/components/library/title-library-actions";
 import { CreatorTip } from "@/components/payments/creator-tip";
 import { catalog } from "@/lib/catalog";
 import { getTitle } from "@/lib/catalog-repository";
@@ -62,10 +63,7 @@ export default async function TitlePage({
                   <Play size={17} fill="currentColor" />
                   Watch episode 1
                 </Link>
-                <button>
-                  <Plus size={17} />
-                  Add to list
-                </button>
+                <TitleLibraryActions slug={title.slug} />
               </div>
             </div>
           </div>
