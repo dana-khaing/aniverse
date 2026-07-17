@@ -1,35 +1,8 @@
 "use client";
-
 import Link from "next/link";
-import { CheckCircle2, Send } from "lucide-react";
-import {
-  emptyCreatorApplication,
-  useLocalDemoState,
-} from "@/lib/local-demo";
-
-export function CreatorApplicationForm() {
-  const [application, setApplication] = useLocalDemoState(
-    "aniverse.creator-application",
-    emptyCreatorApplication,
-  );
-
-  if (application.status === "approved") {
-    return <div className="creator-success"><CheckCircle2/><h2>You are approved</h2><p>Your creator workspace and publishing tools are ready.</p><Link href="/creator">Open creator studio</Link></div>;
-  }
-
-  if (application.status === "submitted") {
-    return <div className="creator-success"><Send/><h2>Application submitted</h2><p>An administrator can review this application in the local admin queue.</p><Link href="/admin/creators">Open approval queue</Link></div>;
-  }
-
-  return <form className="creator-form" onSubmit={(event) => {
-    event.preventDefault();
-    setApplication((current) => ({...current,status:"submitted",submittedAt:new Date().toISOString()}));
-  }}>
-    <label>Channel or studio name<input required value={application.channelName} onChange={(event)=>setApplication({...application,channelName:event.target.value})}/></label>
-    <label>Legal name<input required value={application.legalName} onChange={(event)=>setApplication({...application,legalName:event.target.value})}/></label>
-    <label>Portfolio URL<input type="url" placeholder="https://" value={application.portfolioUrl} onChange={(event)=>setApplication({...application,portfolioUrl:event.target.value})}/></label>
-    <label>Rights and ownership summary<textarea required rows={6} value={application.rightsSummary} onChange={(event)=>setApplication({...application,rightsSummary:event.target.value})} placeholder="Tell us what you create and confirm you control the distribution rights."/></label>
-    {application.status === "rejected" ? <p className="form-alert">Revise the application and submit it again.</p> : null}
-    <button><Send size={16}/>Submit application</button>
-  </form>;
-}
+import { useEffect,useState } from "react";
+import { CheckCircle2,LoaderCircle,Send } from "lucide-react";
+import { emptyCreatorApplication,useLocalDemoState } from "@/lib/local-demo";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+type CloudApplication={channel_name:string;legal_name:string;portfolio_url:string|null;rights_summary:string;status:"draft"|"submitted"|"approved"|"rejected";submitted_at:string|null;review_notes:string|null};
+export function CreatorApplicationForm(){const[application,setApplication]=useLocalDemoState("aniverse.creator-application",emptyCreatorApplication);const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[reviewNotes,setReviewNotes]=useState("");const cloud=isSupabaseConfigured();useEffect(()=>{if(!cloud)return;void fetch("/api/v1/creator/application").then(async(response)=>response.ok?response.json():Promise.reject()).then((data:{application:CloudApplication|null})=>{if(!data.application)return;const item=data.application;setApplication({channelName:item.channel_name,legalName:item.legal_name,portfolioUrl:item.portfolio_url??"",rightsSummary:item.rights_summary,status:item.status,submittedAt:item.submitted_at??undefined});setReviewNotes(item.review_notes??"")}).catch(()=>setError("Cloud application status is temporarily unavailable."))},[cloud,setApplication]);if(application.status==="approved")return <div className="creator-success"><CheckCircle2/><h2>You are approved</h2><p>Your creator role, team, and publishing workspace are ready.</p><Link href="/creator">Open creator studio</Link></div>;if(application.status==="submitted")return <div className="creator-success"><Send/><h2>Application submitted</h2><p>An AniVerse administrator will review your rights and portfolio. You can return here for the decision.</p><Link href="/">Return to AniVerse</Link></div>;async function submit(event:React.FormEvent){event.preventDefault();setBusy(true);setError("");if(cloud){const response=await fetch("/api/v1/creator/application",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(application)});const data=await response.json().catch(()=>({})) as {application?:{submitted_at?:string};error?:string};if(!response.ok){setError(data.error??"Application could not be submitted.");setBusy(false);return}setApplication({...application,status:"submitted",submittedAt:data.application?.submitted_at??new Date().toISOString()})}else setApplication({...application,status:"submitted",submittedAt:new Date().toISOString()});setBusy(false)}return <form className="creator-form" onSubmit={(event)=>void submit(event)}><label>Channel or studio name<input required minLength={2} maxLength={80} value={application.channelName} onChange={(event)=>setApplication({...application,channelName:event.target.value})}/></label><label>Legal name<input required minLength={2} maxLength={120} value={application.legalName} onChange={(event)=>setApplication({...application,legalName:event.target.value})}/></label><label>Portfolio URL<input type="url" placeholder="https://" value={application.portfolioUrl} onChange={(event)=>setApplication({...application,portfolioUrl:event.target.value})}/></label><label>Rights and ownership summary<textarea required minLength={40} maxLength={4000} rows={6} value={application.rightsSummary} onChange={(event)=>setApplication({...application,rightsSummary:event.target.value})} placeholder="Tell us what you create and confirm you control the distribution rights."/></label>{application.status==="rejected"&&<p className="form-alert">Application declined{reviewNotes?`: ${reviewNotes}`:". Revise it and submit again."}</p>}{error&&<p className="form-alert" role="alert">{error}</p>}<button disabled={busy}>{busy?<LoaderCircle className="spin"/>:<Send size={16}/>}Submit application</button></form>}
