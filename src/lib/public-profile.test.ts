@@ -1,0 +1,1 @@
+import{describe,expect,it}from"vitest";import{profileReviewSchema}from"@/lib/public-profile";describe("profile reviews",()=>{it("validates useful reviews",()=>expect(profileReviewSchema.safeParse({title:"Asteria",body:"A thoughtful and beautifully animated story.",score:9}).success).toBe(true))});
