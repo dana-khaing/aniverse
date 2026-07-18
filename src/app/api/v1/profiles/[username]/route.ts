@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { profileFollowSchema, profileReviewSchema } from "@/lib/public-profile";
+import { profileBlockSchema, profileFollowSchema, profileReviewSchema } from "@/lib/public-profile";
 
 export async function GET(_: Request, { params }: { params: Promise<{ username: string }> }) {
   if (!isSupabaseConfigured()) return Response.json({ error: "Cloud profiles are unavailable" }, { status: 503 });
@@ -13,6 +13,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ username: 
   if (!profile) return Response.json({ error: "Profile not found" }, { status: 404 });
 
   const ownProfile = user?.id === profile.id;
+  const { data: blockRows } = user && !ownProfile ? await admin.from("blocked_users").select("blocker_id,blocked_id").or(`and(blocker_id.eq.${user.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${user.id})`) : { data: [] };
+  const viewerBlocked = Boolean(blockRows?.some((item) => item.blocker_id === user?.id));
+  const blockedByProfile = Boolean(blockRows?.some((item) => item.blocker_id === profile.id));
+  if (blockedByProfile) return Response.json({ error: "Profile not found" }, { status: 404 });
   const visibility = profile.profile_visibility ?? (profile.profile_public ? "public" : "private");
   let follows = false;
   if (!ownProfile && visibility === "followers" && user) {
@@ -32,7 +36,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ username: 
     user && !ownProfile ? admin.from("creator_follows").select("creator_id").eq("creator_id", profile.id).eq("follower_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   return Response.json({
-    profile: { username: profile.username, name: profile.display_name || profile.username, bio: profile.bio || "Animation explorer", watched: watched ?? 0, followers: followers ?? 0, followed: Boolean(viewerFollow), ownProfile, authenticated: Boolean(user) },
+    profile: { username: profile.username, name: profile.display_name || profile.username, bio: profile.bio || "Animation explorer", watched: watched ?? 0, followers: followers ?? 0, followed: Boolean(viewerFollow), blocked: viewerBlocked, ownProfile, authenticated: Boolean(user) },
     reviews: (reviews ?? []).map((item) => ({ id: item.id, title: item.title_name, body: item.body, score: item.score })),
     achievements: [
       { name: "Season Pioneer", detail: `Completed ${watched ?? 0} episodes` },
@@ -51,25 +55,38 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ us
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Sign in to follow profiles" }, { status: 401 });
-  const parsed = profileFollowSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ error: "Invalid follow action" }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const follow = profileFollowSchema.safeParse(body);
+  const block = profileBlockSchema.safeParse(body);
+  if (!follow.success && !block.success) return Response.json({ error: "Invalid profile action" }, { status: 400 });
   const { username } = await params;
   const admin = getAdminClient();
   const { data: profile } = await admin.from("profiles").select("id,display_name,username").ilike("username", username).maybeSingle();
   if (!profile) return Response.json({ error: "Profile not found" }, { status: 404 });
-  if (profile.id === user.id) return Response.json({ error: "You cannot follow your own profile" }, { status: 409 });
+  if (profile.id === user.id) return Response.json({ error: "You cannot change your own relationship" }, { status: 409 });
+  if (block.success) {
+    const { error } = block.data.blocked
+      ? await admin.from("blocked_users").upsert({ blocker_id: user.id, blocked_id: profile.id })
+      : await admin.from("blocked_users").delete().eq("blocker_id", user.id).eq("blocked_id", profile.id);
+    if (!error && block.data.blocked) await Promise.all([
+      admin.from("creator_follows").delete().eq("follower_id", user.id).eq("creator_id", profile.id),
+      admin.from("creator_follows").delete().eq("follower_id", profile.id).eq("creator_id", user.id),
+    ]);
+    return error ? Response.json({ error: "Block could not be saved" }, { status: 500 }) : Response.json({ blocked: block.data.blocked });
+  }
+  if (!follow.success) return Response.json({ error: "Invalid follow action" }, { status: 400 });
   const { count: blocked } = await admin.from("blocked_users").select("blocker_id", { count: "exact", head: true }).or(`and(blocker_id.eq.${user.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${user.id})`);
   if (blocked) return Response.json({ error: "This follow is unavailable" }, { status: 403 });
   const query = admin.from("creator_follows");
-  const { error } = parsed.data.followed
+  const { error } = follow.data.followed
     ? await query.upsert({ follower_id: user.id, creator_id: profile.id })
     : await query.delete().eq("follower_id", user.id).eq("creator_id", profile.id);
   if (error) return Response.json({ error: "Follow could not be saved" }, { status: 500 });
-  if (parsed.data.followed) {
+  if (follow.data.followed) {
     const { data: viewer } = await admin.from("profiles").select("display_name,username").eq("id", user.id).maybeSingle();
     await admin.from("notifications").insert({ user_id: profile.id, type: "follow", title: "New follower", body: `${viewer?.display_name || viewer?.username || "An AniVerse member"} followed your profile.`, href: `/profile/${viewer?.username ?? ""}` });
   }
-  return Response.json({ followed: parsed.data.followed });
+  return Response.json({ followed: follow.data.followed });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ username: string }> }) {
