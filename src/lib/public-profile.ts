@@ -1,0 +1,1 @@
+import{z}from"zod";export const profileReviewSchema=z.object({title:z.string().trim().min(2).max(160),body:z.string().trim().min(20).max(2000),score:z.number().int().min(1).max(10)});export type ProfileReview={id:string;title:string;body:string;score:number};
