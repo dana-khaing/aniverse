@@ -1,0 +1,1 @@
+import{describe,expect,it}from"vitest";import{moderationActionSchema}from"@/lib/moderation";describe("moderation actions",()=>{it("rejects unscoped decisions",()=>expect(moderationActionSchema.safeParse({type:"report",id:"bad",decision:"delete"}).success).toBe(false))});
