@@ -19,4 +19,14 @@ describe("community feed", () => {
     expect(stored).toContain("Independent animation deserves this space.");
     expect(stored).not.toContain('"read":false');
   });
+
+  it("opens a confidential report flow for a post", () => {
+    render(<CommunityFeed />);
+    fireEvent.click(screen.getAllByRole("button", { name: /Report post by/ })[0]);
+    expect(screen.getByRole("dialog", { name: "Report community post" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("What happened?"), { target: { value: "This contains repeated targeted harassment." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit confidential report" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Report post by/ })[0]).toBeDisabled();
+  });
 });
