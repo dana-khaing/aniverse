@@ -40,6 +40,19 @@ export async function POST(request: Request) {
   const parsed = creatorStudioActionSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid creator studio action" }, { status: 400 });
   const { admin, membership, user } = access;
+  if (parsed.data.type === "add-member") {
+    const memberAction = parsed.data;
+    if (membership.role !== "owner") return Response.json({ error: "Owner access required" }, { status: 403 });
+    const { data: users, error: usersError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const invited = users.users.find((item) => item.email?.toLowerCase() === memberAction.email.toLowerCase());
+    if (usersError || !invited) return Response.json({ error: "No registered AniVerse account uses that email" }, { status: 404 });
+    if (invited.id === user.id) return Response.json({ error: "You are already the team owner" }, { status: 409 });
+    const { error } = await admin.from("creator_team_memberships").upsert({ team_id: membership.team_id, user_id: invited.id, role: parsed.data.role, invited_by: user.id });
+    if (error) return Response.json({ error: "Team member could not be added" }, { status: 500 });
+    await admin.from("user_roles").upsert({ user_id: invited.id, role: "creator", granted_by: user.id });
+    const { data: profile } = await admin.from("profiles").select("display_name,username").eq("id", invited.id).maybeSingle();
+    return Response.json({ member: { name: profile?.display_name || profile?.username || invited.email || "Creator", role: parsed.data.role } }, { status: 201 });
+  }
   if (parsed.data.type === "create-title") {
     const id = randomUUID();
     const { data, error } = await admin.from("titles").insert({ id, creator_team_id: membership.team_id, creator_user_id: user.id, slug: studioSlug(parsed.data.name, id), name: parsed.data.name, synopsis: "", status: "draft" }).select("id,name,status").single();
