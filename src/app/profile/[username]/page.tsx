@@ -1,1 +1,1 @@
-import { PublicHeader } from "@/components/catalog/public-header";import { PublicProfile } from "@/components/community/public-profile";export default function ProfilePage(){return <><PublicHeader/><PublicProfile/></>}
+import { PublicHeader } from "@/components/catalog/public-header";import { PublicProfile } from "@/components/community/public-profile";export default async function ProfilePage({params}:{params:Promise<{username:string}>}){const{username}=await params;return <><PublicHeader/><PublicProfile username={username}/></>}
