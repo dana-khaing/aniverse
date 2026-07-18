@@ -12,7 +12,7 @@ type Profile = { username: string; name: string; bio: string; watched: number; f
 
 export function PublicProfile({ username = "dana" }: { username?: string }) {
   const [reviews, setReviews] = useLocalDemoState<ProfileReview[]>("aniverse.profile-reviews", localReviews);
-  const [profile, setProfile] = useState<Profile>({ username: "dana", name: "Dana Lewis", bio: "Animation explorer", watched: 128, followers: 42, followed: false, blocked: false, ownProfile: true, authenticated: true });
+  const [profile, setProfile] = useState<Profile>({ username, name: username === "dana" ? "Dana Lewis" : username.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()), bio: "Animation explorer", watched: 128, followers: 42, followed: false, blocked: false, ownProfile: username === "dana", authenticated: true });
   const [achievements, setAchievements] = useState(localAchievements);
   const [activity, setActivity] = useState(["Completed Echoes of Asteria episode 12", "Earned Season Pioneer", "Added Skybound to Weekend watch"]);
   const [body, setBody] = useState(""); const [title, setTitle] = useState(""); const [score, setScore] = useState(8);
