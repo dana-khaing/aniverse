@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { profileBlockSchema, profileFollowSchema, profileReviewSchema } from "@/lib/public-profile";
+import { profileBlockSchema, profileFollowSchema, profileReportSchema, profileReviewSchema } from "@/lib/public-profile";
+import { consumeRateLimit } from "@/lib/security";
 
 export async function GET(_: Request, { params }: { params: Promise<{ username: string }> }) {
   if (!isSupabaseConfigured()) return Response.json({ error: "Cloud profiles are unavailable" }, { status: 503 });
@@ -104,4 +105,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
   return error
     ? Response.json({ error: "Review could not be published" }, { status: 500 })
     : Response.json({ review: { id: data.id, title: data.title_name, body: data.body, score: data.score } }, { status: 201 });
+}
+
+export async function PUT(request: Request, { params }: { params: Promise<{ username: string }> }) {
+  if (!isSupabaseConfigured()) return Response.json({ error: "Cloud reporting is unavailable" }, { status: 503 });
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "Untrusted report origin" }, { status: 403 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Sign in to report profiles" }, { status: 401 });
+  if (!consumeRateLimit(`profile-report:${user.id}`, 5, 1 / 300)) return Response.json({ error: "Too many reports. Try again later." }, { status: 429 });
+  const parsed = profileReportSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return Response.json({ error: "Choose a reason and add at least 10 characters of detail" }, { status: 400 });
+  const { username } = await params;
+  const admin = getAdminClient();
+  const { data: profile } = await admin.from("profiles").select("id").ilike("username", username).maybeSingle();
+  if (!profile) return Response.json({ error: "Profile not found" }, { status: 404 });
+  if (profile.id === user.id) return Response.json({ error: "You cannot report your own profile" }, { status: 409 });
+  const { data: existing } = await admin.from("reports").select("id").eq("reporter_id", user.id).eq("entity_type", "profile").eq("entity_id", profile.id).in("status", ["open", "reviewing"]).maybeSingle();
+  if (existing) return Response.json({ error: "You already have an active report for this profile" }, { status: 409 });
+  const { data, error } = await admin.from("reports").insert({ reporter_id: user.id, entity_type: "profile", entity_id: profile.id, reason: parsed.data.reason, details: parsed.data.details }).select("id,status").single();
+  return error ? Response.json({ error: "Report could not be submitted" }, { status: 500 }) : Response.json({ report: data }, { status: 201 });
 }
