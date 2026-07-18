@@ -14,7 +14,7 @@ export type CreatorStudioTitle = {
 };
 
 export type CreatorStudioWorkspace = {
-  team: { id: string; name: string; role: string; members: Array<{ name: string; role: string }> };
+  team: { id: string; name: string; role: string; members: Array<{ name: string; role: string }>; invitations?: Array<{ email: string; role: string; expiresAt: string }> };
   titles: CreatorStudioTitle[];
 };
 

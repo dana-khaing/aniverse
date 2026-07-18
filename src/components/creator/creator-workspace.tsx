@@ -21,6 +21,7 @@ export function CreatorWorkspace() {
   const [studioBusy, setStudioBusy] = useState(false);
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("editor");
+  const [invitations, setInvitations] = useState<Array<{ id: string; team: string; role: string; expiresAt: string }>>([]);
   const cloud = isSupabaseConfigured();
   const {
     records: storedMedia,
@@ -39,7 +40,7 @@ export function CreatorWorkspace() {
     setStudioBusy(false);
   }
 
-  useEffect(() => { const timeout = setTimeout(() => void loadStudio(), 0); return () => clearTimeout(timeout); }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const timeout = setTimeout(() => { void loadStudio(); if (cloud) void fetch("/api/v1/creator/invitations", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject()).then((data: { invitations: typeof invitations }) => setInvitations(data.invitations)).catch(() => undefined); }, 0); return () => clearTimeout(timeout); }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createTitle() {
     const name = newTitle.trim();
@@ -70,10 +71,12 @@ export function CreatorWorkspace() {
   async function addMember(event: React.FormEvent) {
     event.preventDefault(); if (!memberEmail.trim()) return; setStudioBusy(true); setStudioError(undefined);
     const response = await fetch("/api/v1/creator/studio", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "add-member", email: memberEmail, role: memberRole }) });
-    const data = await response.json().catch(() => ({})) as { member?: { name: string; role: string }; error?: string };
-    if (response.ok && data.member) { setWorkspace((current) => ({ ...current, team: { ...current.team, members: [...current.team.members.filter((item) => item.name !== data.member!.name), data.member!] } })); setMemberEmail(""); }
-    else setStudioError(data.error ?? "Team member could not be added."); setStudioBusy(false);
+    const data = await response.json().catch(() => ({})) as { invitation?: { email: string; role: string; expiresAt: string }; error?: string };
+    if (response.ok && data.invitation) { setWorkspace((current) => ({ ...current, team: { ...current.team, invitations: [...(current.team.invitations ?? []).filter((item) => item.email !== data.invitation!.email), data.invitation!] } })); setMemberEmail(""); }
+    else setStudioError(data.error ?? "Team invitation could not be created."); setStudioBusy(false);
   }
+
+  async function answerInvitation(id: string, action: "accept" | "decline") { setStudioBusy(true); const response = await fetch("/api/v1/creator/invitations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ invitationId: id, action }) }); if (response.ok) { setInvitations((current) => current.filter((item) => item.id !== id)); if (action === "accept") await loadStudio(); } else setStudioError("The invitation could not be updated."); setStudioBusy(false); }
 
   async function uploadVideo(file: File) {
     const title = workspace.titles[0];
@@ -133,6 +136,7 @@ export function CreatorWorkspace() {
           </button>
         </header>
         {studioError && <p className="form-error" role="alert">{studioError}</p>}
+        {invitations.length > 0 && <section className="studio-panel"><div className="panel-head"><div><p>INVITATIONS</p><h2>Teams waiting for you</h2></div></div><div className="member-list">{invitations.map((invitation) => <div key={invitation.id}><span>{invitation.team.slice(0, 1)}</span><b>{invitation.team}<small>{invitation.role} · expires {new Date(invitation.expiresAt).toLocaleDateString()}</small></b><span><button disabled={studioBusy} onClick={() => void answerInvitation(invitation.id, "accept")}>Accept</button><button disabled={studioBusy} onClick={() => void answerInvitation(invitation.id, "decline")}>Decline</button></span></div>)}</div></section>}
         <section id="overview" className="metric-grid">
           <article>
             <b>{workspace.titles.length}</b>
@@ -294,6 +298,7 @@ export function CreatorWorkspace() {
                 <i>{member.role}</i>
               </div>
             ))}
+            {(workspace.team.invitations ?? []).map((invitation) => <div key={invitation.email}><span>{invitation.email.slice(0, 1).toUpperCase()}</span><b>{invitation.email}<small>Pending until {new Date(invitation.expiresAt).toLocaleDateString()}</small></b><i>{invitation.role}</i></div>)}
           </div>
         </section>
       </div>

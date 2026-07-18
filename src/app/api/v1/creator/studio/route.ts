@@ -18,17 +18,18 @@ export async function GET() {
   const access = await context();
   if ("error" in access) return access.error;
   const { admin, membership } = access;
-  const [{ data: team, error: teamError }, { data: titles, error: titleError }, { data: memberships }] = await Promise.all([
+  const [{ data: team, error: teamError }, { data: titles, error: titleError }, { data: memberships }, { data: invitations }] = await Promise.all([
     admin.from("creator_teams").select("id,name").eq("id", membership.team_id).single(),
     admin.from("titles").select("id,name,status,seasons(episodes(id))").eq("creator_team_id", membership.team_id).order("created_at"),
     admin.from("creator_team_memberships").select("user_id,role").eq("team_id", membership.team_id).order("joined_at"),
+    membership.role === "owner" ? admin.from("creator_team_invitations").select("email,role,expires_at").eq("team_id", membership.team_id).is("accepted_at", null).gt("expires_at", new Date().toISOString()).order("created_at") : Promise.resolve({ data: [] }),
   ]);
   if (teamError || titleError || !team) return Response.json({ error: "Could not load creator workspace" }, { status: 500 });
   const memberRows = memberships ?? [];
   const { data: profiles } = memberRows.length ? await admin.from("profiles").select("id,display_name,username").in("id", memberRows.map((item) => item.user_id)) : { data: [] };
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.display_name || profile.username || "Creator"]));
   return Response.json({ workspace: {
-    team: { id: team.id, name: team.name, role: membership.role, members: memberRows.map((item) => ({ name: names.get(item.user_id) ?? "Creator", role: item.role })) },
+    team: { id: team.id, name: team.name, role: membership.role, members: memberRows.map((item) => ({ name: names.get(item.user_id) ?? "Creator", role: item.role })), invitations: (invitations ?? []).map((item) => ({ email: item.email, role: item.role, expiresAt: item.expires_at })) },
     titles: (titles ?? []).map((title) => ({ id: title.id, name: title.name, status: studioStatus(title.status), episodes: title.seasons.reduce((sum, season) => sum + season.episodes.length, 0) })),
   } }, { headers: { "cache-control": "private, no-store" } });
 }
@@ -43,15 +44,11 @@ export async function POST(request: Request) {
   if (parsed.data.type === "add-member") {
     const memberAction = parsed.data;
     if (membership.role !== "owner") return Response.json({ error: "Owner access required" }, { status: 403 });
-    const { data: users, error: usersError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const invited = users.users.find((item) => item.email?.toLowerCase() === memberAction.email.toLowerCase());
-    if (usersError || !invited) return Response.json({ error: "No registered AniVerse account uses that email" }, { status: 404 });
-    if (invited.id === user.id) return Response.json({ error: "You are already the team owner" }, { status: 409 });
-    const { error } = await admin.from("creator_team_memberships").upsert({ team_id: membership.team_id, user_id: invited.id, role: parsed.data.role, invited_by: user.id });
-    if (error) return Response.json({ error: "Team member could not be added" }, { status: 500 });
-    await admin.from("user_roles").upsert({ user_id: invited.id, role: "creator", granted_by: user.id });
-    const { data: profile } = await admin.from("profiles").select("display_name,username").eq("id", invited.id).maybeSingle();
-    return Response.json({ member: { name: profile?.display_name || profile?.username || invited.email || "Creator", role: parsed.data.role } }, { status: 201 });
+    if (user.email?.toLowerCase() === memberAction.email.toLowerCase()) return Response.json({ error: "You are already the team owner" }, { status: 409 });
+    const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const { data: invitation, error } = await admin.from("creator_team_invitations").upsert({ team_id: membership.team_id, email: memberAction.email.toLowerCase(), role: parsed.data.role, invited_by: user.id, expires_at: expiresAt, accepted_at: null }, { onConflict: "team_id,email" }).select("email,role,expires_at").single();
+    if (error) return Response.json({ error: "Team invitation could not be created" }, { status: 500 });
+    return Response.json({ invitation: { email: invitation.email, role: invitation.role, expiresAt: invitation.expires_at } }, { status: 201 });
   }
   if (parsed.data.type === "create-title") {
     const id = randomUUID();
