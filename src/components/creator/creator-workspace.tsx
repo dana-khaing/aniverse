@@ -19,6 +19,8 @@ export function CreatorWorkspace() {
   const [uploadError, setUploadError] = useState<string>();
   const [studioError, setStudioError] = useState<string>();
   const [studioBusy, setStudioBusy] = useState(false);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberRole, setMemberRole] = useState("editor");
   const cloud = isSupabaseConfigured();
   const {
     records: storedMedia,
@@ -63,6 +65,14 @@ export function CreatorWorkspace() {
     if (response.ok) setWorkspace((current) => ({ ...current, titles: current.titles.map((item) => item.id === titleId ? { ...item, episodes: item.episodes + 1 } : item) }));
     else setStudioError(data.error ?? "The episode could not be created.");
     setStudioBusy(false);
+  }
+
+  async function addMember(event: React.FormEvent) {
+    event.preventDefault(); if (!memberEmail.trim()) return; setStudioBusy(true); setStudioError(undefined);
+    const response = await fetch("/api/v1/creator/studio", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "add-member", email: memberEmail, role: memberRole }) });
+    const data = await response.json().catch(() => ({})) as { member?: { name: string; role: string }; error?: string };
+    if (response.ok && data.member) { setWorkspace((current) => ({ ...current, team: { ...current.team, members: [...current.team.members.filter((item) => item.name !== data.member!.name), data.member!] } })); setMemberEmail(""); }
+    else setStudioError(data.error ?? "Team member could not be added."); setStudioBusy(false);
   }
 
   async function uploadVideo(file: File) {
@@ -275,6 +285,7 @@ export function CreatorWorkspace() {
               Invite demo member
             </button>}
           </div>
+          {cloud && workspace.team.role === "owner" && <form className="member-invite" onSubmit={(event) => void addMember(event)}><input required type="email" aria-label="Member email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder="Registered member email"/><select aria-label="Member role" value={memberRole} onChange={(event) => setMemberRole(event.target.value)}><option value="editor">Editor</option><option value="uploader">Uploader</option><option value="analyst">Analyst</option></select><button disabled={studioBusy}><UsersRound size={15}/>Add member</button></form>}
           <div className="member-list">
             {workspace.team.members.map((member) => (
               <div key={member.name}>
