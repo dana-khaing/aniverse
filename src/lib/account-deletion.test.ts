@@ -1,0 +1,1 @@
+import{describe,expect,it}from"vitest";import{accountDeletionSchema}from"@/lib/account-deletion";describe("account deletion confirmation",()=>{it("requires the exact destructive confirmation",()=>{expect(accountDeletionSchema.safeParse({confirmation:"DELETE"}).success).toBe(true);expect(accountDeletionSchema.safeParse({confirmation:"delete"}).success).toBe(false)})});
