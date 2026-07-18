@@ -58,7 +58,7 @@ export const emptyCreatorApplication: CreatorApplication = {
 };
 
 export type CreatorWorkspace = {
-  team: { name: string; members: Array<{ name: string; role: string }> };
+  team: { name: string; role?: string; members: Array<{ name: string; role: string }> };
   titles: Array<{
     id: string;
     name: string;

@@ -3,6 +3,7 @@ import { z } from "zod";
 export const creatorStudioActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("create-title"), name: z.string().trim().min(2).max(120) }),
   z.object({ type: z.literal("add-episode"), titleId: z.string().uuid() }),
+  z.object({ type: z.literal("add-member"), email: z.string().trim().email().max(254), role: z.enum(["editor", "uploader", "analyst"]) }),
 ]);
 
 export type CreatorStudioTitle = {
