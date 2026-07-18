@@ -1,0 +1,1 @@
+import{z}from"zod";export const moderationActionSchema=z.discriminatedUnion("type",[z.object({type:z.literal("report"),id:z.string().uuid(),decision:z.enum(["actioned","dismissed"])}),z.object({type:z.literal("appeal"),id:z.string().uuid(),decision:z.enum(["closed","dismissed"])}),z.object({type:z.literal("mature-content"),enabled:z.boolean()})]);
