@@ -26,7 +26,7 @@ export function LibraryDashboard() {
       {!library.progress.some((item) => !item.completed) && <p className="library-empty">Start an episode and it will appear here.</p>}
     </section>
 
-    <section><div className="library-heading"><Bookmark/><div><p>WATCH NEXT</p><h2>Watchlist</h2></div></div>
+    <section id="watchlist"><div className="library-heading"><Bookmark/><div><p>WATCH NEXT</p><h2>Watchlist</h2></div></div>
       <div className="favorite-list">{library.watchlist.map((slug) => { const title=titleFor(slug); return <article key={slug}><Poster slug={slug}/><div><b>{title?.name ?? slug}</b><small>{title?.genre.join(" · ")}</small></div><Link href={`/anime/${slug}`}>Open</Link><button aria-label={`Remove ${title?.name ?? slug} from Watchlist`} onClick={() => void dispatch({type:"toggle-watchlist",slug})}><X/></button></article> })}</div>
       {!library.watchlist.length && <p className="library-empty">Your Watchlist is ready for the next universe you discover.</p>}
     </section>
@@ -35,7 +35,7 @@ export function LibraryDashboard() {
       <div className="favorite-list">{library.favorites.map((slug) => { const title=titleFor(slug); return <article key={slug}><Poster slug={slug}/><div><b>{title?.name ?? slug}</b><small>{title?.genre.join(" · ")}</small></div><Link href={`/anime/${slug}`}>Open</Link><button aria-label={`Remove ${title?.name ?? slug} from favorites`} onClick={() => void dispatch({type:"toggle-favorite",slug})}><Trash2/></button></article> })}</div>
     </section>
 
-    <section><div className="library-heading"><Clock3/><div><p>RECENT ACTIVITY</p><h2>Watch history</h2></div></div>
+    <section id="history"><div className="library-heading"><Clock3/><div><p>RECENT ACTIVITY</p><h2>Watch history</h2></div></div>
       <div className="history-list">{library.progress.map((item) => <article key={`${item.slug}-${item.episode}`}><div><b>{item.title}</b><span>Episode {item.episode} · {item.completed ? "Completed" : `${Math.round(item.position/item.duration*100)}% watched`}</span></div><time>{new Date(item.watchedAt).toLocaleDateString()}</time><Link href={`/watch/${item.slug}/${item.episode}`}><Play/>Resume</Link><button aria-label={`Remove ${item.title} episode ${item.episode} from history`} onClick={() => void dispatch({type:"remove-history",slug:item.slug,episode:item.episode})}><Trash2/></button></article>)}</div>
     </section>
 
