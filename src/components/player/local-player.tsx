@@ -17,6 +17,8 @@ import { useLibrary } from "@/lib/use-library";
 import { TitleLibraryActions } from "@/components/library/title-library-actions";
 import { getAllRecords } from "@/lib/local-data/database";
 import type { StoredMedia } from "@/lib/local-data/types";
+import type Hls from "hls.js";
+import { formatPlaybackTime, qualityOptions, type QualityOption } from "@/lib/adaptive-streaming";
 
 type LocalPlayerProps = {
   slug: string;
@@ -35,15 +37,20 @@ export function LocalPlayer({
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const lastSavedRef = useRef(0);
   const lastEventRef = useRef(0);
   const [source,setSource]=useState<string>();
   const [speed,setSpeed]=useState(1);
-  const [quality,setQuality]=useState("Auto");
-  const [audio,setAudio]=useState("Japanese");
+  const [quality,setQuality]=useState(-1);
+  const [qualities,setQualities]=useState<QualityOption[]>([]);
+  const [audio,setAudio]=useState(0);
+  const [audioTracks,setAudioTracks]=useState<Array<{id:number;label:string}>>([]);
   const [captions,setCaptions]=useState(true);
   const [autoplay,setAutoplay]=useState(true);
   const [subtitleSize,setSubtitleSize]=useState("Medium");
+  const [duration,setDuration]=useState(1440);
+  const [streamError,setStreamError]=useState("");
   const { library, dispatch } = useLibrary();
   const saved = library.progress.find(
     (item) => item.slug === slug && item.episode === episode,
@@ -53,7 +60,8 @@ export function LocalPlayer({
   const reportEvent=useCallback((eventType:"start"|"progress"|"seek"|"complete",next:number,duration:number)=>{void fetch("/api/v1/playback/events",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,episode,eventType,position:Math.max(0,Math.floor(next)),duration:Math.max(1,Math.floor(duration||1440))})}).catch(()=>undefined)},[episode,slug]);
 
   useEffect(()=>{let objectUrl:string|undefined;let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string};if(!cancelled)setSource(data.url);return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl);};},[managedEpisodeId,slug]);
-  useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let destroy:(()=>void)|undefined;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;}else{void import("hls.js").then(({default:Hls})=>{if(!Hls.isSupported())return;const hls=new Hls({enableWorker:true});hls.loadSource(source);hls.attachMedia(video);destroy=()=>hls.destroy();});}return()=>destroy?.();},[source]);
+  useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let cancelled=false;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;setStreamError("");return;}void import("hls.js").then(({default:Hls})=>{if(cancelled)return;if(!Hls.isSupported()){setStreamError("Adaptive streaming is not supported by this browser.");return;}const hls=new Hls({enableWorker:true,startLevel:-1,capLevelToPlayerSize:true});hlsRef.current=hls;hls.on(Hls.Events.MANIFEST_PARSED,()=>{setQualities(qualityOptions(hls.levels));setStreamError("");});hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,data)=>setAudioTracks(data.audioTracks.map((track,index)=>({id:index,label:track.name||track.lang||`Track ${index+1}`}))));hls.on(Hls.Events.ERROR,(_,data)=>{if(!data.fatal)return;if(data.type===Hls.ErrorTypes.NETWORK_ERROR)hls.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else{setStreamError("This stream could not be played.");hls.destroy();}});hls.loadSource(source);hls.attachMedia(video);});return()=>{cancelled=true;hlsRef.current?.destroy();hlsRef.current=null;setQualities([]);setAudioTracks([]);};},[source]);
+  useEffect(()=>{const video=videoRef.current;if(!video)return;for(const track of Array.from(video.textTracks))track.mode=captions?"showing":"disabled";},[captions,source]);
   useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
 
   function togglePlayback(){const video=videoRef.current;if(video)void(video.paused?video.play():video.pause());else setPlaying((value)=>!value);}
@@ -82,7 +90,7 @@ export function LocalPlayer({
         <Link href={`/anime/${slug}`}>Back to series</Link>
       </header>
       <section className="video-stage">
-        {source&&<video ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={(event)=>{setPlaying(true);reportEvent("start",event.currentTarget.currentTime,event.currentTarget.duration)}} onPause={(event)=>{setPlaying(false);saveProgress(Math.floor(event.currentTarget.currentTime))}} onTimeUpdate={(event)=>{const next=Math.floor(event.currentTarget.currentTime);setPosition(next);if(next-lastSavedRef.current>=15){lastSavedRef.current=next;saveProgress(next)}if(next-lastEventRef.current>=30){lastEventRef.current=next;reportEvent("progress",next,event.currentTarget.duration)}}} onEnded={(event)=>{saveProgress(Math.floor(event.currentTarget.duration));reportEvent("complete",event.currentTarget.duration,event.currentTarget.duration);if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);lastSavedRef.current=event.currentTarget.currentTime;lastEventRef.current=event.currentTarget.currentTime;}}/>}
+        {source&&<video className={`subtitles-${subtitleSize.toLowerCase()}`} ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={(event)=>{setPlaying(true);reportEvent("start",event.currentTarget.currentTime,event.currentTarget.duration)}} onPause={(event)=>{setPlaying(false);saveProgress(Math.floor(event.currentTarget.currentTime))}} onTimeUpdate={(event)=>{const next=Math.floor(event.currentTarget.currentTime);setPosition(next);if(next-lastSavedRef.current>=15){lastSavedRef.current=next;saveProgress(next)}if(next-lastEventRef.current>=30){lastEventRef.current=next;reportEvent("progress",next,event.currentTarget.duration)}}} onEnded={(event)=>{saveProgress(Math.floor(event.currentTarget.duration));reportEvent("complete",event.currentTarget.duration,event.currentTarget.duration);if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{setDuration(event.currentTarget.duration||1440);event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);lastSavedRef.current=event.currentTarget.currentTime;lastEventRef.current=event.currentTarget.currentTime;}}/>}
         <div className="video-art">
           <span>{title.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
           <p>{playing ? "Playing local preview" : "Local secure preview"}</p>
@@ -99,9 +107,9 @@ export function LocalPlayer({
             aria-label="Playback position"
             type="range"
             min="0"
-            max="1440"
+            max={duration}
             value={position}
-            onChange={(event) => saveProgress(Number(event.target.value))}
+            onChange={(event) => seekTo(Number(event.target.value))}
           />
           <div>
             <span>
@@ -115,12 +123,12 @@ export function LocalPlayer({
               <button aria-label="Next episode"><SkipForward /></button>
               <Volume2 />
             </span>
-            <time>{Math.floor(position / 60)}:{String(position % 60).padStart(2, "0")} / 24:00</time>
+            <time>{formatPlaybackTime(position)} / {formatPlaybackTime(duration)}</time>
             <span><button aria-label="Picture in picture" onClick={()=>{const video=videoRef.current;if(video&&document.pictureInPictureEnabled)void video.requestPictureInPicture();}}><PictureInPicture/></button><button aria-label="Playback speed" onClick={()=>{const next=speed>=2?0.5:speed+0.5;setSpeed(next);if(videoRef.current)videoRef.current.playbackRate=next;}}>{speed}×</button><button aria-label="Fullscreen" onClick={()=>{if(videoRef.current)void videoRef.current.requestFullscreen();}}><Maximize/></button><button aria-label="Toggle captions" className={captions?"active":""} onClick={()=>setCaptions(!captions)}><Captions /></button><Settings /></span>
           </div>
         </div>
       </section>
-      <section className="player-options" aria-label="Playback options"><div className="chapter-strip"><button onClick={()=>seekTo(0)}>Opening <span>00:00</span></button><button onClick={()=>seekTo(90)}>Chapter 1 <span>01:30</span></button><button onClick={()=>seekTo(690)}>Chapter 2 <span>11:30</span></button><button onClick={()=>seekTo(1350)}>Ending <span>22:30</span></button></div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>setQuality(event.target.value)}><option>Auto</option><option>1080p</option><option>720p</option><option>480p</option></select></label><label>Audio<select aria-label="Audio track" value={audio} onChange={(event)=>setAudio(event.target.value)}><option>Japanese</option><option>English</option></select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{position>0&&position<90&&<button className="skip-segment" onClick={()=>seekTo(90)}>Skip intro</button>}{position>=1350&&<button className="skip-segment" onClick={()=>seekTo(1440)}>Skip outro</button>}</section>
+      <section className="player-options" aria-label="Playback options">{streamError&&<p className="stream-error" role="alert">{streamError}</p>}<div className="chapter-strip"><button onClick={()=>seekTo(0)}>Opening <span>00:00</span></button><button onClick={()=>seekTo(90)}>Chapter 1 <span>01:30</span></button><button onClick={()=>seekTo(690)}>Chapter 2 <span>11:30</span></button><button onClick={()=>seekTo(1350)}>Ending <span>22:30</span></button></div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>{const level=Number(event.target.value);setQuality(level);if(hlsRef.current)hlsRef.current.currentLevel=level;}}><option value={-1}>Auto</option>{qualities.map((option)=><option key={option.level} value={option.level}>{option.label}</option>)}</select></label><label>Audio<select aria-label="Audio track" value={audio} disabled={!audioTracks.length} onChange={(event)=>{const track=Number(event.target.value);setAudio(track);if(hlsRef.current)hlsRef.current.audioTrack=track;}}>{audioTracks.length?audioTracks.map((track)=><option key={track.id} value={track.id}>{track.label}</option>):<option value={0}>Stream default</option>}</select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{position>0&&position<90&&<button className="skip-segment" onClick={()=>seekTo(90)}>Skip intro</button>}{position>=1350&&<button className="skip-segment" onClick={()=>seekTo(duration)}>Skip outro</button>}</section>
       <section className="watch-info">
         <div>
           <p>EPISODE {episode} OF {totalEpisodes}</p>
