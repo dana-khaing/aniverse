@@ -25,7 +25,10 @@ type LocalPlayerProps = {
   episode: number;
   totalEpisodes: number;
   managedEpisodeId?: string;
+  initialSubtitleTracks?: SubtitleTrack[];
 };
+
+type SubtitleTrack = { src: string; language: string; label: string; default: boolean };
 
 export function LocalPlayer({
   slug,
@@ -33,6 +36,7 @@ export function LocalPlayer({
   episode,
   totalEpisodes,
   managedEpisodeId,
+  initialSubtitleTracks = [],
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,6 +55,7 @@ export function LocalPlayer({
   const [subtitleSize,setSubtitleSize]=useState("Medium");
   const [duration,setDuration]=useState(1440);
   const [streamError,setStreamError]=useState("");
+  const [subtitleTracks,setSubtitleTracks]=useState<SubtitleTrack[]>(initialSubtitleTracks);
   const { library, dispatch } = useLibrary();
   const saved = library.progress.find(
     (item) => item.slug === slug && item.episode === episode,
@@ -59,7 +64,7 @@ export function LocalPlayer({
 
   const reportEvent=useCallback((eventType:"start"|"progress"|"seek"|"complete",next:number,duration:number)=>{void fetch("/api/v1/playback/events",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,episode,eventType,position:Math.max(0,Math.floor(next)),duration:Math.max(1,Math.floor(duration||1440))})}).catch(()=>undefined)},[episode,slug]);
 
-  useEffect(()=>{let objectUrl:string|undefined;let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string};if(!cancelled)setSource(data.url);return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){objectUrl=URL.createObjectURL(asset.blob);setSource(objectUrl);}}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;if(objectUrl)URL.revokeObjectURL(objectUrl);};},[managedEpisodeId,slug]);
+  useEffect(()=>{const objectUrls:string[]=[];let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string;subtitles?:SubtitleTrack[]};if(!cancelled){setSource(data.url);setSubtitleTracks(data.subtitles??[]);}return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){const url=URL.createObjectURL(asset.blob);objectUrls.push(url);setSource(url);}const localSubtitles=assets.filter((item)=>item.kind==="subtitle"&&item.titleId===slug).map((item,index)=>{const url=URL.createObjectURL(item.blob);objectUrls.push(url);return{src:url,language:item.language??"en",label:item.label??item.filename??`Subtitle ${index+1}`,default:index===0};});if(!cancelled&&localSubtitles.length)setSubtitleTracks(localSubtitles);}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;for(const url of objectUrls)URL.revokeObjectURL(url);};},[managedEpisodeId,slug]);
   useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let cancelled=false;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;setStreamError("");return;}void import("hls.js").then(({default:Hls})=>{if(cancelled)return;if(!Hls.isSupported()){setStreamError("Adaptive streaming is not supported by this browser.");return;}const hls=new Hls({enableWorker:true,startLevel:-1,capLevelToPlayerSize:true});hlsRef.current=hls;hls.on(Hls.Events.MANIFEST_PARSED,()=>{setQualities(qualityOptions(hls.levels));setStreamError("");});hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,data)=>setAudioTracks(data.audioTracks.map((track,index)=>({id:index,label:track.name||track.lang||`Track ${index+1}`}))));hls.on(Hls.Events.ERROR,(_,data)=>{if(!data.fatal)return;if(data.type===Hls.ErrorTypes.NETWORK_ERROR)hls.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else{setStreamError("This stream could not be played.");hls.destroy();}});hls.loadSource(source);hls.attachMedia(video);});return()=>{cancelled=true;hlsRef.current?.destroy();hlsRef.current=null;setQualities([]);setAudioTracks([]);};},[source]);
   useEffect(()=>{const video=videoRef.current;if(!video)return;for(const track of Array.from(video.textTracks))track.mode=captions?"showing":"disabled";},[captions,source]);
   useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
@@ -92,7 +97,7 @@ export function LocalPlayer({
         <Link href={`/anime/${slug}`}>Back to series</Link>
       </header>
       <section className="video-stage">
-        {source&&<video className={`subtitles-${subtitleSize.toLowerCase()}`} ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={(event)=>{setPlaying(true);reportEvent("start",event.currentTarget.currentTime,event.currentTarget.duration)}} onPause={(event)=>{setPlaying(false);saveProgress(Math.floor(event.currentTarget.currentTime))}} onTimeUpdate={(event)=>{const next=Math.floor(event.currentTarget.currentTime);setPosition(next);if(next-lastSavedRef.current>=15){lastSavedRef.current=next;saveProgress(next)}if(next-lastEventRef.current>=30){lastEventRef.current=next;reportEvent("progress",next,event.currentTarget.duration)}}} onEnded={(event)=>{saveProgress(Math.floor(event.currentTarget.duration));reportEvent("complete",event.currentTarget.duration,event.currentTarget.duration);if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{setDuration(event.currentTarget.duration||1440);event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);lastSavedRef.current=event.currentTarget.currentTime;lastEventRef.current=event.currentTarget.currentTime;}}/>}
+        {source&&<video className={`subtitles-${subtitleSize.toLowerCase()}`} ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={(event)=>{setPlaying(true);reportEvent("start",event.currentTarget.currentTime,event.currentTarget.duration)}} onPause={(event)=>{setPlaying(false);saveProgress(Math.floor(event.currentTarget.currentTime))}} onTimeUpdate={(event)=>{const next=Math.floor(event.currentTarget.currentTime);setPosition(next);if(next-lastSavedRef.current>=15){lastSavedRef.current=next;saveProgress(next)}if(next-lastEventRef.current>=30){lastEventRef.current=next;reportEvent("progress",next,event.currentTarget.duration)}}} onEnded={(event)=>{saveProgress(Math.floor(event.currentTarget.duration));reportEvent("complete",event.currentTarget.duration,event.currentTarget.duration);if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{setDuration(event.currentTarget.duration||1440);event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);lastSavedRef.current=event.currentTarget.currentTime;lastEventRef.current=event.currentTarget.currentTime;}}>{subtitleTracks.map((track)=><track key={`${track.language}-${track.src}`} kind="subtitles" src={track.src} srcLang={track.language} label={track.label} default={track.default}/>)}</video>}
         <div className="video-art">
           <span>{title.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
           <p>{playing ? "Playing local preview" : "Local secure preview"}</p>
