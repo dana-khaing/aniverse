@@ -29,4 +29,6 @@ describe("local player", () => {
   it("offers chapters, tracks, subtitle settings, and autoplay",()=>{render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8}/>);expect(screen.getByRole("button",{name:/Opening/})).toBeInTheDocument();expect(screen.getByLabelText("Video quality")).toBeInTheDocument();expect(screen.getByLabelText("Audio track")).toBeDisabled();expect(screen.getByLabelText("Subtitle size")).toBeInTheDocument();expect(screen.getByLabelText("Autoplay next")).toBeChecked();expect(screen.getByRole("button",{name:"Mute"})).toBeInTheDocument();});
 
   it("attaches uploaded subtitle tracks to video playback",async()=>{vi.stubGlobal("fetch",vi.fn(async()=>Response.json({url:"/episode.mp4",subtitles:[{src:"/episode.vtt",language:"en",label:"English",default:true}]})));render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8} managedEpisodeId="episode-1"/>);await waitFor(()=>expect(document.querySelector('track[srclang="en"]')).toHaveAttribute("src","/episode.vtt"));});
+
+  it("renders episode-specific chapter markers",()=>{render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8} initialMarkers={[{id:"recap",label:"Recap",start:30,end:75,kind:"intro"}]}/>);expect(screen.getByRole("button",{name:/Recap/})).toHaveTextContent("0:30");});
 });

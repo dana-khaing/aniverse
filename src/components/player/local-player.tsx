@@ -16,8 +16,10 @@ import { useLibrary } from "@/lib/use-library";
 import { TitleLibraryActions } from "@/components/library/title-library-actions";
 import { getAllRecords } from "@/lib/local-data/database";
 import type { StoredMedia } from "@/lib/local-data/types";
+import type { ChapterMarker } from "@/lib/local-data/types";
 import type Hls from "hls.js";
 import { formatPlaybackTime, qualityOptions, type QualityOption } from "@/lib/adaptive-streaming";
+import { activeSkipMarker, demoEpisodeMarkers, type EpisodeMarker } from "@/lib/episode-markers";
 
 type LocalPlayerProps = {
   slug: string;
@@ -26,6 +28,7 @@ type LocalPlayerProps = {
   totalEpisodes: number;
   managedEpisodeId?: string;
   initialSubtitleTracks?: SubtitleTrack[];
+  initialMarkers?: EpisodeMarker[];
 };
 
 type SubtitleTrack = { src: string; language: string; label: string; default: boolean };
@@ -37,6 +40,7 @@ export function LocalPlayer({
   totalEpisodes,
   managedEpisodeId,
   initialSubtitleTracks = [],
+  initialMarkers = demoEpisodeMarkers,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,6 +60,7 @@ export function LocalPlayer({
   const [duration,setDuration]=useState(1440);
   const [streamError,setStreamError]=useState("");
   const [subtitleTracks,setSubtitleTracks]=useState<SubtitleTrack[]>(initialSubtitleTracks);
+  const [markers,setMarkers]=useState<EpisodeMarker[]>(initialMarkers);
   const { library, dispatch } = useLibrary();
   const saved = library.progress.find(
     (item) => item.slug === slug && item.episode === episode,
@@ -64,7 +69,7 @@ export function LocalPlayer({
 
   const reportEvent=useCallback((eventType:"start"|"progress"|"seek"|"complete",next:number,duration:number)=>{void fetch("/api/v1/playback/events",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,episode,eventType,position:Math.max(0,Math.floor(next)),duration:Math.max(1,Math.floor(duration||1440))})}).catch(()=>undefined)},[episode,slug]);
 
-  useEffect(()=>{const objectUrls:string[]=[];let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string;subtitles?:SubtitleTrack[]};if(!cancelled){setSource(data.url);setSubtitleTracks(data.subtitles??[]);}return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){const url=URL.createObjectURL(asset.blob);objectUrls.push(url);setSource(url);}const localSubtitles=assets.filter((item)=>item.kind==="subtitle"&&item.titleId===slug).map((item,index)=>{const url=URL.createObjectURL(item.blob);objectUrls.push(url);return{src:url,language:item.language??"en",label:item.label??item.filename??`Subtitle ${index+1}`,default:index===0};});if(!cancelled&&localSubtitles.length)setSubtitleTracks(localSubtitles);}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;for(const url of objectUrls)URL.revokeObjectURL(url);};},[managedEpisodeId,slug]);
+  useEffect(()=>{const objectUrls:string[]=[];let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string;subtitles?:SubtitleTrack[];markers?:EpisodeMarker[]};if(!cancelled){setSource(data.url);setSubtitleTracks(data.subtitles??[]);setMarkers(data.markers?.length?data.markers:demoEpisodeMarkers);}return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){const url=URL.createObjectURL(asset.blob);objectUrls.push(url);setSource(url);}const localSubtitles=assets.filter((item)=>item.kind==="subtitle"&&item.titleId===slug).map((item,index)=>{const url=URL.createObjectURL(item.blob);objectUrls.push(url);return{src:url,language:item.language??"en",label:item.label??item.filename??`Subtitle ${index+1}`,default:index===0};});if(!cancelled&&localSubtitles.length)setSubtitleTracks(localSubtitles);const localMarkers=await getAllRecords<ChapterMarker>("chapters");const episodeMarkers=localMarkers.filter((item)=>item.titleId===slug&&item.episode===episode).sort((a,b)=>a.start-b.start).map((item)=>({id:item.id,label:item.label,start:item.start,end:item.end,kind:item.kind}));if(!cancelled&&episodeMarkers.length)setMarkers(episodeMarkers);}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;for(const url of objectUrls)URL.revokeObjectURL(url);};},[episode,managedEpisodeId,slug]);
   useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let cancelled=false;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;setStreamError("");return;}void import("hls.js").then(({default:Hls})=>{if(cancelled)return;if(!Hls.isSupported()){setStreamError("Adaptive streaming is not supported by this browser.");return;}const hls=new Hls({enableWorker:true,startLevel:-1,capLevelToPlayerSize:true});hlsRef.current=hls;hls.on(Hls.Events.MANIFEST_PARSED,()=>{setQualities(qualityOptions(hls.levels));setStreamError("");});hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,data)=>setAudioTracks(data.audioTracks.map((track,index)=>({id:index,label:track.name||track.lang||`Track ${index+1}`}))));hls.on(Hls.Events.ERROR,(_,data)=>{if(!data.fatal)return;if(data.type===Hls.ErrorTypes.NETWORK_ERROR)hls.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else{setStreamError("This stream could not be played.");hls.destroy();}});hls.loadSource(source);hls.attachMedia(video);});return()=>{cancelled=true;hlsRef.current?.destroy();hlsRef.current=null;setQualities([]);setAudioTracks([]);};},[source]);
   useEffect(()=>{const video=videoRef.current;if(!video)return;for(const track of Array.from(video.textTracks))track.mode=captions?"showing":"disabled";},[captions,source]);
   useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
@@ -135,7 +140,7 @@ export function LocalPlayer({
           </div>
         </div>
       </section>
-      <section className="player-options" aria-label="Playback options">{streamError&&<p className="stream-error" role="alert">{streamError}</p>}<div className="chapter-strip"><button onClick={()=>seekTo(0)}>Opening <span>00:00</span></button><button onClick={()=>seekTo(90)}>Chapter 1 <span>01:30</span></button><button onClick={()=>seekTo(690)}>Chapter 2 <span>11:30</span></button><button onClick={()=>seekTo(1350)}>Ending <span>22:30</span></button></div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>{const level=Number(event.target.value);setQuality(level);if(hlsRef.current)hlsRef.current.currentLevel=level;}}><option value={-1}>Auto</option>{qualities.map((option)=><option key={option.level} value={option.level}>{option.label}</option>)}</select></label><label>Audio<select aria-label="Audio track" value={audio} disabled={!audioTracks.length} onChange={(event)=>{const track=Number(event.target.value);setAudio(track);if(hlsRef.current)hlsRef.current.audioTrack=track;}}>{audioTracks.length?audioTracks.map((track)=><option key={track.id} value={track.id}>{track.label}</option>):<option value={0}>Stream default</option>}</select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{position>0&&position<90&&<button className="skip-segment" onClick={()=>seekTo(90)}>Skip intro</button>}{position>=1350&&<button className="skip-segment" onClick={()=>seekTo(duration)}>Skip outro</button>}</section>
+      <section className="player-options" aria-label="Playback options">{streamError&&<p className="stream-error" role="alert">{streamError}</p>}<div className="chapter-strip" style={{gridTemplateColumns:`repeat(${Math.min(4,Math.max(1,markers.length))},1fr)`}}>{markers.map((marker)=><button key={marker.id} onClick={()=>seekTo(marker.start)}>{marker.label} <span>{formatPlaybackTime(marker.start)}</span></button>)}</div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>{const level=Number(event.target.value);setQuality(level);if(hlsRef.current)hlsRef.current.currentLevel=level;}}><option value={-1}>Auto</option>{qualities.map((option)=><option key={option.level} value={option.level}>{option.label}</option>)}</select></label><label>Audio<select aria-label="Audio track" value={audio} disabled={!audioTracks.length} onChange={(event)=>{const track=Number(event.target.value);setAudio(track);if(hlsRef.current)hlsRef.current.audioTrack=track;}}>{audioTracks.length?audioTracks.map((track)=><option key={track.id} value={track.id}>{track.label}</option>):<option value={0}>Stream default</option>}</select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{activeSkipMarker(markers,position)&&<button className="skip-segment" onClick={()=>seekTo(activeSkipMarker(markers,position)!.end!)}>Skip {activeSkipMarker(markers,position)!.kind}</button>}</section>
       <section className="watch-info">
         <div>
           <p>EPISODE {episode} OF {totalEpisodes}</p>
