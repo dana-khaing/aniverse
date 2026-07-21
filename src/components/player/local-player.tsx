@@ -6,7 +6,6 @@ import {
   Captions,
   Pause,
   Play,
-  Settings,
   SkipBack,
   SkipForward,
   Volume2,
@@ -47,6 +46,7 @@ export function LocalPlayer({
   const [audio,setAudio]=useState(0);
   const [audioTracks,setAudioTracks]=useState<Array<{id:number;label:string}>>([]);
   const [captions,setCaptions]=useState(true);
+  const [muted,setMuted]=useState(false);
   const [autoplay,setAutoplay]=useState(true);
   const [subtitleSize,setSubtitleSize]=useState("Medium");
   const [duration,setDuration]=useState(1440);
@@ -65,6 +65,8 @@ export function LocalPlayer({
   useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
 
   function togglePlayback(){const video=videoRef.current;if(video)void(video.paused?video.play():video.pause());else setPlaying((value)=>!value);}
+  function toggleCaptions(){const next=!captions;setCaptions(next);const video=videoRef.current;if(video)for(const track of Array.from(video.textTracks))track.mode=next?"showing":"disabled";}
+  function toggleMuted(){const video=videoRef.current;const next=!muted;setMuted(next);if(video)video.muted=next;}
   function seekTo(next:number){if(videoRef.current)videoRef.current.currentTime=next;saveProgress(next);reportEvent("seek",next,videoRef.current?.duration||1440);}
 
   function saveProgress(next: number) {
@@ -121,10 +123,10 @@ export function LocalPlayer({
                 {playing ? <Pause /> : <Play />}
               </button>
               <button aria-label="Next episode"><SkipForward /></button>
-              <Volume2 />
+              <button aria-label={muted ? "Unmute" : "Mute"} onClick={toggleMuted}><Volume2 className={muted ? "muted" : ""} /></button>
             </span>
             <time>{formatPlaybackTime(position)} / {formatPlaybackTime(duration)}</time>
-            <span><button aria-label="Picture in picture" onClick={()=>{const video=videoRef.current;if(video&&document.pictureInPictureEnabled)void video.requestPictureInPicture();}}><PictureInPicture/></button><button aria-label="Playback speed" onClick={()=>{const next=speed>=2?0.5:speed+0.5;setSpeed(next);if(videoRef.current)videoRef.current.playbackRate=next;}}>{speed}×</button><button aria-label="Fullscreen" onClick={()=>{if(videoRef.current)void videoRef.current.requestFullscreen();}}><Maximize/></button><button aria-label="Toggle captions" className={captions?"active":""} onClick={()=>setCaptions(!captions)}><Captions /></button><Settings /></span>
+            <span><button aria-label="Picture in picture" onClick={()=>{const video=videoRef.current;if(video&&document.pictureInPictureEnabled)void video.requestPictureInPicture();}}><PictureInPicture/></button><button aria-label="Playback speed" onClick={()=>{const next=speed>=2?0.5:speed+0.5;setSpeed(next);if(videoRef.current)videoRef.current.playbackRate=next;}}>{speed}×</button><button aria-label="Fullscreen" onClick={()=>{if(videoRef.current)void videoRef.current.requestFullscreen();}}><Maximize/></button><button aria-label="Toggle captions" className={captions?"active":""} onClick={toggleCaptions}><Captions /></button></span>
           </div>
         </div>
       </section>
