@@ -8,9 +8,20 @@ export const subtitleMetadataSchema = z.object({
 });
 
 export function isWebVtt(file: File) {
-  return file.size > 0 && file.size <= 5_242_880 && file.name.toLowerCase().endsWith(".vtt");
+  return (
+    file.size > 0 &&
+    file.size <= 5_242_880 &&
+    file.name.toLowerCase().endsWith(".vtt")
+  );
 }
 
 export function safeSubtitleFilename(filename: string) {
-  return filename.toLowerCase().replace(/\.vtt$/, "").replace(/[^a-z0-9_-]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "subtitles";
+  return (
+    filename
+      .toLowerCase()
+      .replace(/\.vtt$/, "")
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80) || "subtitles"
+  );
 }
