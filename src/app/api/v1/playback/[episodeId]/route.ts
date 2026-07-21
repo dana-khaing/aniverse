@@ -10,9 +10,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ episodeId:
   const { data: upload } = await supabase.from("video_uploads").select("playback_id").eq("episode_id", episodeId).eq("provider", "mux").eq("status", "ready").not("playback_id", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!upload?.playback_id) return Response.json({ error: "Video is still processing", status: "processing" }, { status: 409 });
   const { data: subtitleRows } = await supabase.from("subtitle_tracks").select("language_code,label,storage_path,is_default").eq("episode_id", episodeId).order("is_default", { ascending: false });
+  const { data: markerRows } = await supabase.from("episode_markers").select("id,label,start_seconds,end_seconds,kind").eq("episode_id", episodeId).order("position");
   const subtitles = (await Promise.all((subtitleRows ?? []).map(async (track) => {
     const { data, error } = await supabase.storage.from("subtitles").createSignedUrl(track.storage_path, 3600);
     return error || !data?.signedUrl ? null : { src: data.signedUrl, language: track.language_code, label: track.label, default: track.is_default };
   }))).filter((track): track is NonNullable<typeof track> => Boolean(track));
-  return Response.json({ url: signedPlaybackUrl(upload.playback_id), subtitles, expiresIn: 3600 }, { headers: { "cache-control": "private, no-store" } });
+  const markers = (markerRows ?? []).map((marker) => ({ id: marker.id, label: marker.label, start: marker.start_seconds, end: marker.end_seconds ?? undefined, kind: marker.kind }));
+  return Response.json({ url: signedPlaybackUrl(upload.playback_id), subtitles, markers, expiresIn: 3600 }, { headers: { "cache-control": "private, no-store" } });
 }
