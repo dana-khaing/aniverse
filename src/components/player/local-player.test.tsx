@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocalPlayer } from "./local-player";
 
 describe("local player", () => {
   beforeEach(() => localStorage.clear());
+  afterEach(() => vi.unstubAllGlobals());
 
   it("stores progress and favorite state", () => {
     render(
@@ -26,4 +27,6 @@ describe("local player", () => {
   });
 
   it("offers chapters, tracks, subtitle settings, and autoplay",()=>{render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8}/>);expect(screen.getByRole("button",{name:/Opening/})).toBeInTheDocument();expect(screen.getByLabelText("Video quality")).toBeInTheDocument();expect(screen.getByLabelText("Audio track")).toBeDisabled();expect(screen.getByLabelText("Subtitle size")).toBeInTheDocument();expect(screen.getByLabelText("Autoplay next")).toBeChecked();expect(screen.getByRole("button",{name:"Mute"})).toBeInTheDocument();});
+
+  it("attaches uploaded subtitle tracks to video playback",async()=>{vi.stubGlobal("fetch",vi.fn(async()=>Response.json({url:"/episode.mp4",subtitles:[{src:"/episode.vtt",language:"en",label:"English",default:true}]})));render(<LocalPlayer slug="neon-ronin" title="Neon Ronin" episode={1} totalEpisodes={8} managedEpisodeId="episode-1"/>);await waitFor(()=>expect(document.querySelector('track[srclang="en"]')).toHaveAttribute("src","/episode.vtt"));});
 });
