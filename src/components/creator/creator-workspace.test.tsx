@@ -35,4 +35,17 @@ describe("creator workspace", () => {
       screen.getByRole("button", { name: "Upload subtitles" }),
     ).toBeInTheDocument();
   });
+
+  it("authors chapter, intro, and outro timelines", () => {
+    render(<CreatorWorkspace />);
+    expect(
+      screen.getByRole("heading", { name: "Chapters and skip markers" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add marker" }));
+    expect(screen.getByLabelText("Marker 1 type")).toHaveValue("chapter");
+    expect(screen.getByLabelText("Marker 1 label")).toHaveValue("New chapter");
+    expect(screen.getByLabelText("Marker 1 start seconds")).toHaveValue(0);
+    expect(screen.getByRole("button", { name: "Save timeline" })).toBeEnabled();
+  });
 });
