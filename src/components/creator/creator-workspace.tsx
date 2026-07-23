@@ -538,7 +538,7 @@ export function CreatorWorkspace() {
         <section id="uploads" className="studio-panel">
           <div className="panel-head">
             <div>
-              <p>LOCAL MEDIA LIBRARY</p>
+              <p>{cloud ? "MANAGED VIDEO LIBRARY" : "LOCAL MEDIA LIBRARY"}</p>
               <h2>Uploads and subtitles</h2>
             </div>
             <div className="video-upload-controls">
@@ -610,8 +610,9 @@ export function CreatorWorkspace() {
               <FileVideo />
               <h3>No video assets yet</h3>
               <p>
-                Upload a local video. The original file stays privately in this
-                browser using IndexedDB.
+                {cloud
+                  ? "Choose an episode and upload its source video directly to secure Mux processing."
+                  : "Upload a local video. The original file stays privately in this browser using IndexedDB."}
               </p>
             </div>
           )}
