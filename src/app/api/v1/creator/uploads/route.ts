@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createDirectUpload } from "@/lib/mux";
+import { cancelDirectUpload, createDirectUpload } from "@/lib/mux";
 import { createClient } from "@/lib/supabase/server";
 
 const uploadRequest = z.object({
@@ -108,4 +108,53 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin)
+    return Response.json(
+      { error: "Untrusted cancellation origin" },
+      { status: 403 },
+    );
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id || !z.string().uuid().safeParse(id).success)
+    return Response.json({ error: "Invalid upload" }, { status: 400 });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return Response.json({ error: "Authentication required" }, { status: 401 });
+  const { data: upload } = await supabase
+    .from("video_uploads")
+    .select("id,provider_upload_id,status")
+    .eq("id", id)
+    .eq("created_by", user.id)
+    .in("status", ["queued", "uploading"])
+    .maybeSingle();
+  if (!upload?.provider_upload_id)
+    return Response.json({ error: "Active upload not found" }, { status: 404 });
+  try {
+    await cancelDirectUpload(upload.provider_upload_id);
+  } catch {
+    return Response.json(
+      { error: "Mux could not cancel this upload" },
+      { status: 502 },
+    );
+  }
+  const { error } = await supabase
+    .from("video_uploads")
+    .update({
+      status: "failed",
+      error_message: "Cancelled by creator",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error)
+    return Response.json(
+      { error: "Cancellation status could not be saved" },
+      { status: 500 },
+    );
+  return new Response(null, { status: 204 });
 }

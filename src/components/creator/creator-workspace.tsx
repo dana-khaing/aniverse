@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Captions,
   FileVideo,
@@ -21,7 +21,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
 import {
   managedVideoFileError,
-  uploadManagedVideo,
+  cancelManagedUpload,
+  createResumableManagedUpload,
+  type ManagedUploadSession,
+  type ManagedUploadStatus,
 } from "@/lib/creator-cloud-upload";
 
 export function CreatorWorkspace() {
@@ -58,6 +61,15 @@ export function CreatorWorkspace() {
   >([]);
   const [subtitleEpisode, setSubtitleEpisode] = useState("");
   const [videoEpisode, setVideoEpisode] = useState("");
+  const [activeUpload, setActiveUpload] = useState<{
+    id: string;
+    filename: string;
+    progress: number;
+    status: ManagedUploadStatus;
+    detail?: string;
+  }>();
+  const activeUploadRef = useRef<ManagedUploadSession | undefined>(undefined);
+  const lastUploadFileRef = useRef<File | undefined>(undefined);
   const [subtitleLanguage, setSubtitleLanguage] = useState("en");
   const [subtitleLabel, setSubtitleLabel] = useState("English");
   const [subtitleDefault, setSubtitleDefault] = useState(true);
@@ -125,6 +137,46 @@ export function CreatorWorkspace() {
     }, 0);
     return () => clearTimeout(timeout);
   }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const stored = window.localStorage.getItem(
+        "aniverse.creator-active-upload",
+      );
+      if (!stored) return;
+      try {
+        const upload = JSON.parse(stored) as {
+          id?: string;
+          filename?: string;
+          progress?: number;
+        };
+        if (upload.id && upload.filename)
+          setActiveUpload({
+            id: upload.id,
+            filename: upload.filename,
+            progress: upload.progress ?? 0,
+            status: "failed",
+            detail:
+              "This upload was interrupted. Select the same source file to retry.",
+          });
+      } catch {
+        window.localStorage.removeItem("aniverse.creator-active-upload");
+      }
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  function rememberActiveUpload(upload: {
+    id: string;
+    filename: string;
+    progress: number;
+  }) {
+    if (!upload.id) return;
+    window.localStorage.setItem(
+      "aniverse.creator-active-upload",
+      JSON.stringify(upload),
+    );
+  }
 
   async function createTitle() {
     const name = newTitle.trim();
@@ -250,10 +302,42 @@ export function CreatorWorkspace() {
         );
         return;
       }
-      setStudioBusy(true);
       setUploadError(undefined);
+      lastUploadFileRef.current = file;
+      setActiveUpload({
+        id: "",
+        filename: file.name,
+        progress: 0,
+        status: "uploading",
+        detail: "Reserving a secure resumable upload…",
+      });
       try {
-        const upload = await uploadManagedVideo(file, videoEpisode);
+        const session = await createResumableManagedUpload(file, videoEpisode, {
+          onProgress: (progress) =>
+            setActiveUpload((current) => {
+              if (!current) return current;
+              const next = { ...current, progress };
+              rememberActiveUpload(next);
+              return next;
+            }),
+          onStatus: (status, detail) =>
+            setActiveUpload((current) =>
+              current ? { ...current, status, detail } : current,
+            ),
+        });
+        activeUploadRef.current = session;
+        setActiveUpload((current) => {
+          const next = {
+            id: session.id,
+            filename: session.filename,
+            progress: current?.progress ?? 0,
+            status: current?.status ?? ("uploading" as const),
+            detail: current?.detail,
+          };
+          rememberActiveUpload(next);
+          return next;
+        });
+        const upload = await session.completion;
         const episode = episodes.find((item) => item.id === videoEpisode);
         setWorkspace((current) => ({
           ...current,
@@ -274,12 +358,25 @@ export function CreatorWorkspace() {
         setUploadError(
           "Upload received. Mux is preparing secure playback renditions.",
         );
+        window.localStorage.removeItem("aniverse.creator-active-upload");
+        activeUploadRef.current = undefined;
       } catch (error) {
+        setActiveUpload((current) =>
+          current
+            ? {
+                ...current,
+                status: "failed",
+                detail:
+                  error instanceof Error
+                    ? error.message
+                    : "Managed upload failed.",
+              }
+            : current,
+        );
         setUploadError(
           error instanceof Error ? error.message : "Managed upload failed.",
         );
       }
-      setStudioBusy(false);
       return;
     }
     const title = workspace.titles[0];
@@ -314,6 +411,65 @@ export function CreatorWorkspace() {
           : "The video could not be stored locally",
       );
     }
+  }
+
+  function pauseManagedVideo() {
+    activeUploadRef.current?.upload.pause();
+    setActiveUpload((current) =>
+      current
+        ? { ...current, status: "paused", detail: "Upload paused." }
+        : current,
+    );
+  }
+
+  function resumeManagedVideo() {
+    activeUploadRef.current?.upload.resume();
+    setActiveUpload((current) =>
+      current
+        ? { ...current, status: "uploading", detail: "Upload resumed." }
+        : current,
+    );
+  }
+
+  async function cancelManagedVideo() {
+    const id = activeUpload?.id;
+    activeUploadRef.current?.upload.abort();
+    if (!id) return;
+    try {
+      await cancelManagedUpload(id);
+      window.localStorage.removeItem("aniverse.creator-active-upload");
+      activeUploadRef.current = undefined;
+      setActiveUpload((current) =>
+        current
+          ? {
+              ...current,
+              status: "cancelled",
+              detail: "Upload cancelled.",
+            }
+          : current,
+      );
+    } catch (error) {
+      setActiveUpload((current) =>
+        current
+          ? {
+              ...current,
+              status: "failed",
+              detail:
+                error instanceof Error ? error.message : "Cancellation failed.",
+            }
+          : current,
+      );
+    }
+  }
+
+  function retryManagedVideo() {
+    const file = lastUploadFileRef.current;
+    if (!file) {
+      setUploadError("Select the source video again to restart this upload.");
+      return;
+    }
+    activeUploadRef.current = undefined;
+    void uploadVideo(file);
   }
 
   async function uploadSubtitle(event: React.FormEvent<HTMLFormElement>) {
@@ -383,6 +539,12 @@ export function CreatorWorkspace() {
     else setUploadError("Subtitle could not be deleted.");
     setStudioBusy(false);
   }
+
+  const managedUploadActive = Boolean(
+    cloud &&
+    activeUpload &&
+    !["processing", "failed", "cancelled"].includes(activeUpload.status),
+  );
 
   return (
     <div className="studio-layout">
@@ -561,7 +723,7 @@ export function CreatorWorkspace() {
                 </select>
               )}
               <label
-                className={`upload-button${studioBusy || (cloud && !videoEpisode) ? " is-disabled" : ""}`}
+                className={`upload-button${studioBusy || managedUploadActive || (cloud && !videoEpisode) ? " is-disabled" : ""}`}
               >
                 {studioBusy ? (
                   <LoaderCircle className="spin" size={15} />
@@ -572,7 +734,11 @@ export function CreatorWorkspace() {
                 <input
                   type="file"
                   accept="video/*"
-                  disabled={studioBusy || (cloud && !videoEpisode)}
+                  disabled={
+                    studioBusy ||
+                    managedUploadActive ||
+                    (cloud && !videoEpisode)
+                  }
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (file) void uploadVideo(file);
@@ -586,6 +752,47 @@ export function CreatorWorkspace() {
             <p role="alert" className="form-error">
               {uploadError}
             </p>
+          )}
+          {cloud && activeUpload && (
+            <article className="active-video-upload" aria-live="polite">
+              <FileVideo />
+              <div>
+                <b>{activeUpload.filename}</b>
+                <span>
+                  {activeUpload.status} · {activeUpload.progress}%
+                </span>
+                <progress max={100} value={activeUpload.progress}>
+                  {activeUpload.progress}%
+                </progress>
+                {activeUpload.detail && <small>{activeUpload.detail}</small>}
+              </div>
+              <span className="upload-lifecycle-actions">
+                {["uploading", "retrying"].includes(activeUpload.status) && (
+                  <button type="button" onClick={pauseManagedVideo}>
+                    Pause
+                  </button>
+                )}
+                {activeUpload.status === "paused" && (
+                  <button type="button" onClick={resumeManagedVideo}>
+                    Resume
+                  </button>
+                )}
+                {activeUpload.status === "failed" && (
+                  <button type="button" onClick={retryManagedVideo}>
+                    Retry
+                  </button>
+                )}
+                {!["processing", "cancelled"].includes(activeUpload.status) && (
+                  <button
+                    type="button"
+                    disabled={!activeUpload.id}
+                    onClick={() => void cancelManagedVideo()}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </span>
+            </article>
           )}
           {workspace.uploads.length ? (
             <div className="upload-list">

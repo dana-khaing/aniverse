@@ -60,6 +60,14 @@ describe("creator workspace", () => {
 
   it("connects a selected cloud episode to the Mux uploader", async () => {
     cloudState.enabled = true;
+    localStorage.setItem(
+      "aniverse.creator-active-upload",
+      JSON.stringify({
+        id: "987f6543-e21b-43d2-a456-426614174001",
+        filename: "episode.mp4",
+        progress: 42,
+      }),
+    );
     const episode = {
       id: "987f6543-e21b-43d2-a456-426614174000",
       title: "Moon Garden",
@@ -98,5 +106,9 @@ describe("creator workspace", () => {
       expect(screen.getByLabelText("Video episode")).toHaveValue(episode.id),
     );
     expect(screen.getByLabelText("Upload to Mux")).toBeEnabled();
+    expect(await screen.findByText("episode.mp4")).toBeInTheDocument();
+    expect(screen.getByText("failed · 42%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
   });
 });
