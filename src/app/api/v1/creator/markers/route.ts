@@ -50,7 +50,9 @@ async function teamEpisodes(
 ) {
   const { data: titles, error } = await admin
     .from("titles")
-    .select("id,name,seasons(id,number,episodes(id,number,title,duration_seconds))")
+    .select(
+      "id,name,seasons(id,number,episodes(id,number,title,duration_seconds))",
+    )
     .eq("creator_team_id", teamId)
     .order("created_at");
   if (error) return { error };
@@ -74,10 +76,7 @@ async function teamEpisodes(
 export async function GET() {
   const access = await creatorContext();
   if ("error" in access) return access.error;
-  const catalog = await teamEpisodes(
-    access.admin,
-    access.membership.team_id,
-  );
+  const catalog = await teamEpisodes(access.admin, access.membership.team_id);
   if ("error" in catalog)
     return Response.json(
       { error: "Episode catalog could not be loaded" },
@@ -139,15 +138,10 @@ export async function PUT(request: Request) {
   if (timelineError)
     return Response.json({ error: timelineError }, { status: 400 });
 
-  const catalog = await teamEpisodes(
-    access.admin,
-    access.membership.team_id,
-  );
+  const catalog = await teamEpisodes(access.admin, access.membership.team_id);
   if (
     "error" in catalog ||
-    !catalog.episodes.some(
-      (episode) => episode.id === parsed.data.episodeId,
-    )
+    !catalog.episodes.some((episode) => episode.id === parsed.data.episodeId)
   )
     return Response.json(
       { error: "Episode not found in this creator team" },
