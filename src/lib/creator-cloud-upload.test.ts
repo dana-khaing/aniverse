@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cancelManagedUpload,
   createResumableManagedUpload,
+  deleteManagedAsset,
   managedVideoFileError,
   uploadManagedVideo,
 } from "./creator-cloud-upload";
@@ -125,6 +126,20 @@ describe("creator managed video upload", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/creator/uploads?id=upload-3",
+      { method: "DELETE" },
+    );
+  });
+
+  it("requests permanent managed asset deletion", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteManagedAsset("asset-row");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/creator/uploads?id=asset-row&action=delete",
       { method: "DELETE" },
     );
   });

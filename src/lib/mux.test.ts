@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cancelDirectUpload,
   createPlaybackToken,
+  deleteVideoAsset,
   parseMuxSignature,
   verifyMuxWebhook,
 } from "./mux";
@@ -74,6 +75,22 @@ describe("Mux security adapter", () => {
           authorization: `Basic ${Buffer.from("token-id:token-secret").toString("base64")}`,
         }),
       }),
+    );
+  });
+
+  it("permanently deletes a managed video asset", async () => {
+    process.env.MUX_TOKEN_ID = "token-id";
+    process.env.MUX_TOKEN_SECRET = "token-secret";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteVideoAsset("asset/one");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.mux.com/video/v1/assets/asset%2Fone",
+      expect.objectContaining({ method: "DELETE" }),
     );
   });
 });
