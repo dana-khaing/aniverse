@@ -25,10 +25,7 @@ describe("creator managed video upload", () => {
     const file = new File(["video"], "episode.mp4", { type: "video/mp4" });
 
     await expect(
-      uploadManagedVideo(
-        file,
-        "987f6543-e21b-43d2-a456-426614174000",
-      ),
+      uploadManagedVideo(file, "987f6543-e21b-43d2-a456-426614174000"),
     ).resolves.toMatchObject({
       id: "upload-1",
       filename: "episode.mp4",
@@ -43,9 +40,7 @@ describe("creator managed video upload", () => {
 
   it("rejects empty and non-video sources before reserving capacity", () => {
     expect(
-      managedVideoFileError(
-        new File([], "empty.mp4", { type: "video/mp4" }),
-      ),
+      managedVideoFileError(new File([], "empty.mp4", { type: "video/mp4" })),
     ).toContain("non-empty");
     expect(
       managedVideoFileError(
