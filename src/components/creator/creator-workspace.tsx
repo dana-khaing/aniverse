@@ -19,6 +19,10 @@ import { CreatorInsights } from "@/components/creator/creator-insights";
 import { EpisodeMarkerEditor } from "@/components/creator/episode-marker-editor";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
+import {
+  managedVideoFileError,
+  uploadManagedVideo,
+} from "@/lib/creator-cloud-upload";
 
 export function CreatorWorkspace() {
   const [workspace, setWorkspace] = useLocalDemoState(
@@ -53,6 +57,7 @@ export function CreatorWorkspace() {
     }>
   >([]);
   const [subtitleEpisode, setSubtitleEpisode] = useState("");
+  const [videoEpisode, setVideoEpisode] = useState("");
   const [subtitleLanguage, setSubtitleLanguage] = useState("en");
   const [subtitleLabel, setSubtitleLabel] = useState("English");
   const [subtitleDefault, setSubtitleDefault] = useState(true);
@@ -100,6 +105,7 @@ export function CreatorWorkspace() {
     setEpisodes(data.episodes);
     setSubtitleTracks(data.tracks);
     setSubtitleEpisode((current) => current || data.episodes[0]?.id || "");
+    setVideoEpisode((current) => current || data.episodes[0]?.id || "");
   }
 
   useEffect(() => {
@@ -236,6 +242,46 @@ export function CreatorWorkspace() {
   }
 
   async function uploadVideo(file: File) {
+    if (cloud) {
+      const validationError = managedVideoFileError(file);
+      if (validationError || !videoEpisode) {
+        setUploadError(
+          validationError ?? "Select the episode receiving this video.",
+        );
+        return;
+      }
+      setStudioBusy(true);
+      setUploadError(undefined);
+      try {
+        const upload = await uploadManagedVideo(file, videoEpisode);
+        const episode = episodes.find((item) => item.id === videoEpisode);
+        setWorkspace((current) => ({
+          ...current,
+          uploads: [
+            {
+              id: upload.id,
+              filename: upload.filename,
+              title: episode
+                ? `${episode.title} · S${episode.season} E${episode.episode}`
+                : "Selected episode",
+              status: "Processing",
+              subtitles: [],
+              size: upload.bytes,
+            },
+            ...current.uploads,
+          ],
+        }));
+        setUploadError(
+          "Upload received. Mux is preparing secure playback renditions.",
+        );
+      } catch (error) {
+        setUploadError(
+          error instanceof Error ? error.message : "Managed upload failed.",
+        );
+      }
+      setStudioBusy(false);
+      return;
+    }
     const title = workspace.titles[0];
     try {
       setUploadError(undefined);
@@ -492,22 +538,49 @@ export function CreatorWorkspace() {
         <section id="uploads" className="studio-panel">
           <div className="panel-head">
             <div>
-              <p>LOCAL MEDIA LIBRARY</p>
+              <p>{cloud ? "MANAGED VIDEO LIBRARY" : "LOCAL MEDIA LIBRARY"}</p>
               <h2>Uploads and subtitles</h2>
             </div>
-            <label className="upload-button">
-              <Upload size={15} />
-              Upload video
-              <input
-                type="file"
-                accept="video/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void uploadVideo(file);
-                  event.target.value = "";
-                }}
-              />
-            </label>
+            <div className="video-upload-controls">
+              {cloud && (
+                <select
+                  required
+                  aria-label="Video episode"
+                  value={videoEpisode}
+                  onChange={(event) => setVideoEpisode(event.target.value)}
+                  disabled={studioBusy}
+                >
+                  <option value="" disabled>
+                    Select episode
+                  </option>
+                  {episodes.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title} · S{item.season} E{item.episode}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <label
+                className={`upload-button${studioBusy || (cloud && !videoEpisode) ? " is-disabled" : ""}`}
+              >
+                {studioBusy ? (
+                  <LoaderCircle className="spin" size={15} />
+                ) : (
+                  <Upload size={15} />
+                )}
+                {cloud ? "Upload to Mux" : "Upload video"}
+                <input
+                  type="file"
+                  accept="video/*"
+                  disabled={studioBusy || (cloud && !videoEpisode)}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadVideo(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           </div>
           {uploadError && (
             <p role="alert" className="form-error">
@@ -537,8 +610,9 @@ export function CreatorWorkspace() {
               <FileVideo />
               <h3>No video assets yet</h3>
               <p>
-                Upload a local video. The original file stays privately in this
-                browser using IndexedDB.
+                {cloud
+                  ? "Choose an episode and upload its source video directly to secure Mux processing."
+                  : "Upload a local video. The original file stays privately in this browser using IndexedDB."}
               </p>
             </div>
           )}
