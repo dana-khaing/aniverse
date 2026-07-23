@@ -83,6 +83,24 @@ describe("creator workspace", () => {
           return Response.json({ episodes: [episode], tracks: [] });
         if (url.includes("/markers"))
           return Response.json({ episodes: [episode], markers: [] });
+        if (url.includes("/uploads"))
+          return Response.json({
+            role: "owner",
+            uploads: [
+              {
+                id: "987f6543-e21b-43d2-a456-426614174099",
+                episode_id: episode.id,
+                filename: "episode-two.mp4",
+                bytes: 1_048_576,
+                status: "ready",
+                progress: 100,
+                error_message: null,
+                provider_asset_id: "mux-asset",
+                playback_id: "mux-playback",
+                created_at: "2026-07-23T12:00:00Z",
+              },
+            ],
+          });
         if (url.includes("/studio"))
           return Response.json({
             workspace: {
@@ -110,5 +128,11 @@ describe("creator workspace", () => {
     expect(screen.getByText("failed · 42%")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    expect(await screen.findByLabelText("Replace")).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(
+      screen.getByRole("button", { name: "Confirm delete" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Keep" })).toBeEnabled();
   });
 });
