@@ -154,4 +154,17 @@ export async function cancelManagedUpload(id: string) {
     throw new Error(data.error ?? "Managed upload could not be cancelled.");
   }
 }
+
+export async function deleteManagedAsset(id: string) {
+  const response = await fetch(
+    `/api/v1/creator/uploads?id=${encodeURIComponent(id)}&action=delete`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
+    throw new Error(data.error ?? "Managed video asset could not be deleted.");
+  }
+}
 import { createUpload, type UpChunk } from "@mux/upchunk";

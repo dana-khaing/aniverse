@@ -23,6 +23,7 @@ import {
   managedVideoFileError,
   cancelManagedUpload,
   createResumableManagedUpload,
+  deleteManagedAsset,
   type ManagedUploadSession,
   type ManagedUploadStatus,
 } from "@/lib/creator-cloud-upload";
@@ -68,6 +69,22 @@ export function CreatorWorkspace() {
     status: ManagedUploadStatus;
     detail?: string;
   }>();
+  const [managedAssets, setManagedAssets] = useState<
+    Array<{
+      id: string;
+      episode_id: string;
+      filename: string;
+      bytes: number;
+      status: "queued" | "uploading" | "processing" | "ready" | "failed";
+      progress: number;
+      error_message: string | null;
+      provider_asset_id: string | null;
+      playback_id: string | null;
+      created_at: string;
+    }>
+  >([]);
+  const [uploadRole, setUploadRole] = useState("");
+  const [pendingAssetDelete, setPendingAssetDelete] = useState("");
   const activeUploadRef = useRef<ManagedUploadSession | undefined>(undefined);
   const lastUploadFileRef = useRef<File | undefined>(undefined);
   const [subtitleLanguage, setSubtitleLanguage] = useState("en");
@@ -120,11 +137,26 @@ export function CreatorWorkspace() {
     setVideoEpisode((current) => current || data.episodes[0]?.id || "");
   }
 
+  async function loadManagedAssets() {
+    if (!cloud) return;
+    const response = await fetch("/api/v1/creator/uploads", {
+      cache: "no-store",
+    });
+    if (!response.ok) return;
+    const data = (await response.json()) as {
+      role: string;
+      uploads: typeof managedAssets;
+    };
+    setUploadRole(data.role);
+    setManagedAssets(data.uploads);
+  }
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       void loadStudio();
       if (cloud) {
         void loadSubtitles();
+        void loadManagedAssets();
         void fetch("/api/v1/creator/invitations", { cache: "no-store" })
           .then((response) =>
             response.ok ? response.json() : Promise.reject(),
@@ -293,10 +325,11 @@ export function CreatorWorkspace() {
     setStudioBusy(false);
   }
 
-  async function uploadVideo(file: File) {
+  async function uploadVideo(file: File, episodeOverride?: string) {
     if (cloud) {
+      const targetEpisode = episodeOverride ?? videoEpisode;
       const validationError = managedVideoFileError(file);
-      if (validationError || !videoEpisode) {
+      if (validationError || !targetEpisode) {
         setUploadError(
           validationError ?? "Select the episode receiving this video.",
         );
@@ -312,19 +345,23 @@ export function CreatorWorkspace() {
         detail: "Reserving a secure resumable upload…",
       });
       try {
-        const session = await createResumableManagedUpload(file, videoEpisode, {
-          onProgress: (progress) =>
-            setActiveUpload((current) => {
-              if (!current) return current;
-              const next = { ...current, progress };
-              rememberActiveUpload(next);
-              return next;
-            }),
-          onStatus: (status, detail) =>
-            setActiveUpload((current) =>
-              current ? { ...current, status, detail } : current,
-            ),
-        });
+        const session = await createResumableManagedUpload(
+          file,
+          targetEpisode,
+          {
+            onProgress: (progress) =>
+              setActiveUpload((current) => {
+                if (!current) return current;
+                const next = { ...current, progress };
+                rememberActiveUpload(next);
+                return next;
+              }),
+            onStatus: (status, detail) =>
+              setActiveUpload((current) =>
+                current ? { ...current, status, detail } : current,
+              ),
+          },
+        );
         activeUploadRef.current = session;
         setActiveUpload((current) => {
           const next = {
@@ -338,7 +375,7 @@ export function CreatorWorkspace() {
           return next;
         });
         const upload = await session.completion;
-        const episode = episodes.find((item) => item.id === videoEpisode);
+        const episode = episodes.find((item) => item.id === targetEpisode);
         setWorkspace((current) => ({
           ...current,
           uploads: [
@@ -360,6 +397,7 @@ export function CreatorWorkspace() {
         );
         window.localStorage.removeItem("aniverse.creator-active-upload");
         activeUploadRef.current = undefined;
+        await loadManagedAssets();
       } catch (error) {
         setActiveUpload((current) =>
           current
@@ -470,6 +508,22 @@ export function CreatorWorkspace() {
     }
     activeUploadRef.current = undefined;
     void uploadVideo(file);
+  }
+
+  async function removeManagedAsset(id: string) {
+    setStudioBusy(true);
+    setUploadError(undefined);
+    try {
+      await deleteManagedAsset(id);
+      setManagedAssets((current) => current.filter((asset) => asset.id !== id));
+      setPendingAssetDelete("");
+      setUploadError("Managed video asset permanently deleted.");
+    } catch (error) {
+      setUploadError(
+        error instanceof Error ? error.message : "Asset deletion failed.",
+      );
+    }
+    setStudioBusy(false);
   }
 
   async function uploadSubtitle(event: React.FormEvent<HTMLFormElement>) {
@@ -794,7 +848,82 @@ export function CreatorWorkspace() {
               </span>
             </article>
           )}
-          {workspace.uploads.length ? (
+          {cloud && managedAssets.length ? (
+            <div className="upload-list managed-asset-list">
+              {managedAssets.map((asset) => {
+                const episode = episodes.find(
+                  (item) => item.id === asset.episode_id,
+                );
+                const canDelete = ["owner", "editor"].includes(uploadRole);
+                return (
+                  <article key={asset.id}>
+                    <FileVideo />
+                    <div>
+                      <b>{asset.filename}</b>
+                      <span>
+                        {episode
+                          ? `${episode.title} · S${episode.season} E${episode.episode}`
+                          : "Episode"}{" "}
+                        · {(asset.bytes / 1_048_576).toFixed(1)} MB
+                      </span>
+                      {asset.error_message && (
+                        <small>{asset.error_message}</small>
+                      )}
+                    </div>
+                    <i>{asset.status}</i>
+                    <span className="managed-asset-actions">
+                      <label className="upload-button">
+                        Replace
+                        <input
+                          type="file"
+                          accept="video/*"
+                          disabled={managedUploadActive || studioBusy}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) void uploadVideo(file, asset.episode_id);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {canDelete &&
+                        (pendingAssetDelete === asset.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="danger"
+                              disabled={studioBusy}
+                              onClick={() => void removeManagedAsset(asset.id)}
+                            >
+                              Confirm delete
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingAssetDelete("")}
+                            >
+                              Keep
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="danger"
+                            disabled={
+                              studioBusy ||
+                              ["queued", "uploading", "processing"].includes(
+                                asset.status,
+                              )
+                            }
+                            onClick={() => setPendingAssetDelete(asset.id)}
+                          >
+                            Delete
+                          </button>
+                        ))}
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+          ) : !cloud && workspace.uploads.length ? (
             <div className="upload-list">
               {workspace.uploads.map((upload) => (
                 <article key={upload.id}>
@@ -812,7 +941,7 @@ export function CreatorWorkspace() {
                 </article>
               ))}
             </div>
-          ) : (
+          ) : !activeUpload ? (
             <div className="studio-empty">
               <FileVideo />
               <h3>No video assets yet</h3>
@@ -822,7 +951,7 @@ export function CreatorWorkspace() {
                   : "Upload a local video. The original file stays privately in this browser using IndexedDB."}
               </p>
             </div>
-          )}
+          ) : null}
           <div className="subtitle-manager">
             <div className="panel-head">
               <div>

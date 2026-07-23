@@ -71,6 +71,22 @@ export async function cancelDirectUpload(uploadId: string) {
     throw new Error(`Mux upload cancellation failed (${response.status})`);
 }
 
+export async function deleteVideoAsset(assetId: string) {
+  const response = await fetch(
+    `${MUX_API}/assets/${encodeURIComponent(assetId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        authorization: `Basic ${credentials()}`,
+        "content-type": "application/json",
+      },
+      cache: "no-store",
+    },
+  );
+  if (!response.ok && response.status !== 404)
+    throw new Error(`Mux asset deletion failed (${response.status})`);
+}
+
 export function parseMuxSignature(value: string) {
   return Object.fromEntries(
     value
