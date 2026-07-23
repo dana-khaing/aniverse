@@ -17,6 +17,7 @@ import { useIndexedRecords } from "@/lib/local-data/use-indexed-records";
 import type { StoredMedia } from "@/lib/local-data/types";
 import { CreatorInsights } from "@/components/creator/creator-insights";
 import { EpisodeMarkerEditor } from "@/components/creator/episode-marker-editor";
+import { TitleAssetManager } from "@/components/creator/title-asset-manager";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
 import {
@@ -1085,6 +1086,7 @@ export function CreatorWorkspace() {
             }))}
           />
         </section>
+        <TitleAssetManager cloud={cloud} />
         <section id="team" className="studio-panel">
           <div className="panel-head">
             <div>
