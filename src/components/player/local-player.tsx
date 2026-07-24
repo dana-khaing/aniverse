@@ -46,6 +46,13 @@ type LocalPlayerProps = {
   initialMarkers?: EpisodeMarker[];
   partyId?: string;
   partyController?: boolean;
+  partyEvent?: PartyEvent;
+  partyTransport?: {
+    mode: "offline" | "local" | "cloud";
+    send: (event: PartyEvent) => Promise<void>;
+    connectionState: "offline" | "connecting" | "connected" | "reconnecting";
+    onlineCount: number;
+  };
 };
 
 type SubtitleTrack = {
@@ -65,6 +72,8 @@ export function LocalPlayer({
   initialMarkers = demoEpisodeMarkers,
   partyId,
   partyController = false,
+  partyEvent,
+  partyTransport,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -97,28 +106,54 @@ export function LocalPlayer({
     (item) => item.slug === slug && item.episode === episode,
   );
   const [position, setPosition] = useState(saved?.position ?? 0);
-  const receivePartyEvent = useCallback((event: PartyEvent) => {
-    if (event.type !== "playback" || event.sequence <= partySequenceRef.current)
-      return;
-    partySequenceRef.current = event.sequence;
-    const video = videoRef.current;
-    if (!video) return;
-    applyingPartyEventRef.current = true;
-    const target = synchronizedPosition(event);
-    if (Math.abs(video.currentTime - target) > 0.75)
-      video.currentTime = Math.min(target, video.duration || target);
-    video.playbackRate = event.playbackRate;
-    if (event.action === "play") void video.play();
-    else if (event.action === "pause") video.pause();
-    setPartyStatus(`Synced with ${event.author}`);
-    window.setTimeout(() => {
-      applyingPartyEventRef.current = false;
-    }, 150);
-  }, []);
-  const { mode: partyMode, send: sendPartyEvent } = usePartyTransport(
-    partyId,
+  const receivePartyEvent = useCallback(
+    (event: PartyEvent) => {
+      if (
+        event.type === "presence" &&
+        event.action === "sync-request" &&
+        partyController
+      ) {
+        const video = videoRef.current;
+        if (video)
+          broadcastParty(video.paused ? "pause" : "play", video.currentTime);
+        return;
+      }
+      if (
+        event.type !== "playback" ||
+        event.sequence <= partySequenceRef.current
+      )
+        return;
+      partySequenceRef.current = event.sequence;
+      const video = videoRef.current;
+      if (!video) return;
+      applyingPartyEventRef.current = true;
+      const target = synchronizedPosition(event);
+      if (Math.abs(video.currentTime - target) > 0.75)
+        video.currentTime = Math.min(target, video.duration || target);
+      video.playbackRate = event.playbackRate;
+      if (event.action === "play") void video.play();
+      else if (event.action === "pause") video.pause();
+      setPartyStatus(`Synced with ${event.author}`);
+      window.setTimeout(() => {
+        applyingPartyEventRef.current = false;
+      }, 150);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- broadcastParty reads current refs
+    [partyController],
+  );
+  const internalPartyTransport = usePartyTransport(
+    partyTransport ? undefined : partyId,
     receivePartyEvent,
   );
+  const {
+    mode: partyMode,
+    send: sendPartyEvent,
+    connectionState: partyConnection,
+    onlineCount: partyOnlineCount,
+  } = partyTransport ?? internalPartyTransport;
+  useEffect(() => {
+    if (partyEvent) receivePartyEvent(partyEvent);
+  }, [partyEvent, receivePartyEvent]);
 
   const reportEvent = useCallback(
     (
@@ -526,12 +561,16 @@ export function LocalPlayer({
         </div>
       </section>
       {partyId && (
-        <p className="party-sync-status" role="status">
+        <p
+          className={`party-sync-status connection-${partyConnection}`}
+          role="status"
+        >
           <UsersRound size={14} />
           {partyController
             ? "You control this party"
             : "Following the host"} ·{" "}
-          {partyMode === "cloud" ? "cross-device sync" : "local sync"}
+          {partyMode === "cloud" ? "cross-device sync" : "local sync"} ·{" "}
+          {partyOnlineCount} online · {partyConnection}
           {partyStatus && ` · ${partyStatus}`}
         </p>
       )}

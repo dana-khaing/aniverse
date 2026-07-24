@@ -1,7 +1,7 @@
 "use client";
 
 import { Send, Users } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LocalPlayer } from "@/components/player/local-player";
 import {
   PartyLobbyControls,
@@ -33,15 +33,24 @@ export function WatchParty({ partyId }: { partyId: string }) {
     },
   ]);
   const [invitations, setInvitations] = useState<PartyInvitation[]>([]);
+  const [partyEvent, setPartyEvent] = useState<PartyEvent>();
+  const wasDisconnected = useRef(false);
   const receive = useCallback((message: PartyEvent) => {
-    if (message.type !== "chat") return;
-    setMessages((current) =>
-      current.some((item) => item.id === message.id)
-        ? current
-        : [...current, message],
-    );
+    if (message.type === "chat")
+      setMessages((current) =>
+        current.some((item) => item.id === message.id)
+          ? current
+          : [...current, message],
+      );
+    else setPartyEvent(message);
   }, []);
-  const { mode, send: sendEvent } = usePartyTransport(partyId, receive);
+  const partyTransport = usePartyTransport(partyId, receive);
+  const {
+    mode,
+    send: sendEvent,
+    connectionState,
+    onlineCount,
+  } = partyTransport;
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -69,6 +78,26 @@ export function WatchParty({ partyId }: { partyId: string }) {
     return () => controller.abort();
   }, [partyId]);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    if (connectionState === "reconnecting") {
+      wasDisconnected.current = true;
+      return;
+    }
+    if (connectionState !== "connected") return;
+    void fetch(`/api/v1/parties/${encodeURIComponent(partyId)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "presence",
+        state: document.visibilityState === "visible" ? "online" : "away",
+        reconnected: wasDisconnected.current,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+    wasDisconnected.current = false;
+  }, [connectionState, partyId]);
+
   async function send(event: React.FormEvent) {
     event.preventDefault();
     if (!body.trim()) return;
@@ -89,14 +118,16 @@ export function WatchParty({ partyId }: { partyId: string }) {
         <div>
           <p>WATCH PARTY · ECHOES OF ASTERIA</p>
           <h1>Asteria finale night</h1>
-          <small>
+          <small className={`party-connection connection-${connectionState}`}>
             {mode === "cloud"
               ? "Cross-device Supabase Realtime"
-              : "Same-browser local mode"}
+              : "Same-browser local mode"}{" "}
+            · {connectionState}
           </small>
         </div>
         <span>
-          <Users />3 watching
+          <Users />
+          {onlineCount} watching
         </span>
       </header>
       <section>
@@ -108,6 +139,8 @@ export function WatchParty({ partyId }: { partyId: string }) {
             totalEpisodes={12}
             partyId={partyId}
             partyController={role === "host" || role === "moderator"}
+            partyEvent={partyEvent}
+            partyTransport={partyTransport}
           />
         </div>
         <aside>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activePresenceCount,
   synchronizedPosition,
   type PartyPlaybackEvent,
 } from "./realtime-party";
@@ -28,5 +29,13 @@ describe("party playback synchronization", () => {
     expect(synchronizedPosition({ ...event, action: "seek" }, 12_000)).toBe(
       120,
     );
+  });
+
+  it("drops stale party presence after the heartbeat window", () => {
+    const presence = new Map([
+      ["online", 100_000],
+      ["stale", 40_000],
+    ]);
+    expect(activePresenceCount(presence, 110_000, 45_000)).toBe(1);
   });
 });

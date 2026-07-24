@@ -98,6 +98,31 @@ export async function PATCH(
   );
   if (!parsed.success)
     return Response.json({ error: "Invalid party action" }, { status: 400 });
+  if (parsed.data.action === "presence") {
+    const { data: membership } = await access.supabase
+      .from("watch_party_members")
+      .select("reconnect_count")
+      .eq("party_id", id)
+      .eq("user_id", access.user.id)
+      .maybeSingle();
+    const { error } = await access.supabase
+      .from("watch_party_members")
+      .update({
+        connection_state: parsed.data.state,
+        last_seen_at: new Date().toISOString(),
+        reconnect_count:
+          (membership?.reconnect_count ?? 0) +
+          (parsed.data.reconnected ? 1 : 0),
+      })
+      .eq("party_id", id)
+      .eq("user_id", access.user.id);
+    if (error)
+      return Response.json(
+        { error: "Presence could not be updated" },
+        { status: 500 },
+      );
+    return Response.json({ state: parsed.data.state });
+  }
   if (!canManageParty(access.role))
     return Response.json(
       { error: "Host or moderator permission required" },
