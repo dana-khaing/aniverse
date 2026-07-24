@@ -46,6 +46,13 @@ type LocalPlayerProps = {
   initialMarkers?: EpisodeMarker[];
   partyId?: string;
   partyController?: boolean;
+  partyEvent?: PartyEvent;
+  partyTransport?: {
+    mode: "offline" | "local" | "cloud";
+    send: (event: PartyEvent) => Promise<void>;
+    connectionState: "offline" | "connecting" | "connected" | "reconnecting";
+    onlineCount: number;
+  };
 };
 
 type SubtitleTrack = {
@@ -65,6 +72,8 @@ export function LocalPlayer({
   initialMarkers = demoEpisodeMarkers,
   partyId,
   partyController = false,
+  partyEvent,
+  partyTransport,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -132,12 +141,19 @@ export function LocalPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- broadcastParty reads current refs
     [partyController],
   );
+  const internalPartyTransport = usePartyTransport(
+    partyTransport ? undefined : partyId,
+    receivePartyEvent,
+  );
   const {
     mode: partyMode,
     send: sendPartyEvent,
     connectionState: partyConnection,
     onlineCount: partyOnlineCount,
-  } = usePartyTransport(partyId, receivePartyEvent);
+  } = partyTransport ?? internalPartyTransport;
+  useEffect(() => {
+    if (partyEvent) receivePartyEvent(partyEvent);
+  }, [partyEvent, receivePartyEvent]);
 
   const reportEvent = useCallback(
     (

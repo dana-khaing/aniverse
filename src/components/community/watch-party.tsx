@@ -33,21 +33,24 @@ export function WatchParty({ partyId }: { partyId: string }) {
     },
   ]);
   const [invitations, setInvitations] = useState<PartyInvitation[]>([]);
+  const [partyEvent, setPartyEvent] = useState<PartyEvent>();
   const wasDisconnected = useRef(false);
   const receive = useCallback((message: PartyEvent) => {
-    if (message.type !== "chat") return;
-    setMessages((current) =>
-      current.some((item) => item.id === message.id)
-        ? current
-        : [...current, message],
-    );
+    if (message.type === "chat")
+      setMessages((current) =>
+        current.some((item) => item.id === message.id)
+          ? current
+          : [...current, message],
+      );
+    else setPartyEvent(message);
   }, []);
+  const partyTransport = usePartyTransport(partyId, receive);
   const {
     mode,
     send: sendEvent,
     connectionState,
     onlineCount,
-  } = usePartyTransport(partyId, receive);
+  } = partyTransport;
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -136,6 +139,8 @@ export function WatchParty({ partyId }: { partyId: string }) {
             totalEpisodes={12}
             partyId={partyId}
             partyController={role === "host" || role === "moderator"}
+            partyEvent={partyEvent}
+            partyTransport={partyTransport}
           />
         </div>
         <aside>

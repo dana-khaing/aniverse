@@ -35,9 +35,6 @@ export type PartyEvent =
   PartyChatEvent | PartyPlaybackEvent | PartyPresenceEvent;
 export type PartyConnectionState =
   "offline" | "connecting" | "connected" | "reconnecting";
-const sessionParticipantId =
-  globalThis.crypto?.randomUUID() ??
-  `participant-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export function synchronizedPosition(
   event: PartyPlaybackEvent,
@@ -65,7 +62,7 @@ export function usePartyTransport(
 ) {
   const local = useRef<BroadcastChannel | null>(null);
   const remote = useRef<RealtimeChannel | null>(null);
-  const participantId = useRef(sessionParticipantId);
+  const participantId = useRef<string | null>(null);
   const localPresence = useRef(new Map<string, number>());
   const connectionRef = useRef<PartyConnectionState>(
     partyId ? "connecting" : "offline",
@@ -80,7 +77,8 @@ export function usePartyTransport(
 
   useEffect(() => {
     if (!partyId) return;
-    const self = participantId.current;
+    const self = participantId.current ?? crypto.randomUUID();
+    participantId.current = self;
     const event = (
       action: PartyPresenceEvent["action"],
     ): PartyPresenceEvent => ({
