@@ -8,6 +8,11 @@ import {
 const MUX_API = "https://api.mux.com/video/v1";
 
 type MuxUpload = { id: string; url: string; status: string };
+type MuxAssetTrack = {
+  id: string;
+  type: "audio";
+  status?: "preparing" | "ready" | "errored";
+};
 type MuxEvent = {
   id: string;
   type: string;
@@ -85,6 +90,45 @@ export async function deleteVideoAsset(assetId: string) {
   );
   if (!response.ok && response.status !== 404)
     throw new Error(`Mux asset deletion failed (${response.status})`);
+}
+
+export async function createAudioTrack(
+  assetId: string,
+  input: { url: string; languageCode: string; name: string },
+) {
+  const response = await fetch(
+    `${MUX_API}/assets/${encodeURIComponent(assetId)}/tracks`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Basic ${credentials()}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        url: input.url,
+        type: "audio",
+        language_code: input.languageCode,
+        name: input.name,
+      }),
+      cache: "no-store",
+    },
+  );
+  if (!response.ok)
+    throw new Error(`Mux audio track creation failed (${response.status})`);
+  return ((await response.json()) as { data: MuxAssetTrack }).data;
+}
+
+export async function deleteAudioTrack(assetId: string, trackId: string) {
+  const response = await fetch(
+    `${MUX_API}/assets/${encodeURIComponent(assetId)}/tracks/${encodeURIComponent(trackId)}`,
+    {
+      method: "DELETE",
+      headers: { authorization: `Basic ${credentials()}` },
+      cache: "no-store",
+    },
+  );
+  if (!response.ok && response.status !== 404)
+    throw new Error(`Mux audio track deletion failed (${response.status})`);
 }
 
 export function parseMuxSignature(value: string) {

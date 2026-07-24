@@ -2,7 +2,9 @@ import { createHmac, generateKeyPairSync, verify } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cancelDirectUpload,
+  createAudioTrack,
   createPlaybackToken,
+  deleteAudioTrack,
   deleteVideoAsset,
   parseMuxSignature,
   verifyMuxWebhook,
@@ -91,6 +93,38 @@ describe("Mux security adapter", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.mux.com/video/v1/assets/asset%2Fone",
       expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("creates and deletes an alternate audio track", async () => {
+    process.env.MUX_TOKEN_ID = "token-id";
+    process.env.MUX_TOKEN_SECRET = "token-secret";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: { id: "audio-track", type: "audio", status: "preparing" },
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      createAudioTrack("asset/one", {
+        url: "https://media.example/ja.m4a",
+        languageCode: "ja",
+        name: "Japanese",
+      }),
+    ).resolves.toMatchObject({ id: "audio-track" });
+    await deleteAudioTrack("asset/one", "audio/track");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.mux.com/video/v1/assets/asset%2Fone/tracks",
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "https://api.mux.com/video/v1/assets/asset%2Fone/tracks/audio%2Ftrack",
     );
   });
 });
