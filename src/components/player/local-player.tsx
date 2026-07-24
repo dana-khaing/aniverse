@@ -11,6 +11,7 @@ import {
   Volume2,
   Maximize,
   PictureInPicture,
+  UsersRound,
 } from "lucide-react";
 import { useLibrary } from "@/lib/use-library";
 import { TitleLibraryActions } from "@/components/library/title-library-actions";
@@ -18,8 +19,22 @@ import { getAllRecords } from "@/lib/local-data/database";
 import type { StoredMedia } from "@/lib/local-data/types";
 import type { ChapterMarker } from "@/lib/local-data/types";
 import type Hls from "hls.js";
-import { formatPlaybackTime, qualityOptions, type QualityOption } from "@/lib/adaptive-streaming";
-import { activeSkipMarker, demoEpisodeMarkers, type EpisodeMarker } from "@/lib/episode-markers";
+import {
+  formatPlaybackTime,
+  qualityOptions,
+  type QualityOption,
+} from "@/lib/adaptive-streaming";
+import {
+  activeSkipMarker,
+  demoEpisodeMarkers,
+  type EpisodeMarker,
+} from "@/lib/episode-markers";
+import {
+  synchronizedPosition,
+  type PartyEvent,
+  type PartyPlaybackEvent,
+  usePartyTransport,
+} from "@/lib/realtime-party";
 
 type LocalPlayerProps = {
   slug: string;
@@ -29,9 +44,16 @@ type LocalPlayerProps = {
   managedEpisodeId?: string;
   initialSubtitleTracks?: SubtitleTrack[];
   initialMarkers?: EpisodeMarker[];
+  partyId?: string;
+  partyController?: boolean;
 };
 
-type SubtitleTrack = { src: string; language: string; label: string; default: boolean };
+type SubtitleTrack = {
+  src: string;
+  language: string;
+  label: string;
+  default: boolean;
+};
 
 export function LocalPlayer({
   slug,
@@ -41,70 +63,381 @@ export function LocalPlayer({
   managedEpisodeId,
   initialSubtitleTracks = [],
   initialMarkers = demoEpisodeMarkers,
+  partyId,
+  partyController = false,
 }: LocalPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSavedRef = useRef(0);
   const lastEventRef = useRef(0);
-  const [source,setSource]=useState<string>();
-  const [speed,setSpeed]=useState(1);
-  const [quality,setQuality]=useState(-1);
-  const [qualities,setQualities]=useState<QualityOption[]>([]);
-  const [audio,setAudio]=useState(0);
-  const [audioTracks,setAudioTracks]=useState<Array<{id:number;label:string}>>([]);
-  const [captions,setCaptions]=useState(true);
-  const [muted,setMuted]=useState(false);
-  const [autoplay,setAutoplay]=useState(true);
-  const [subtitleSize,setSubtitleSize]=useState("Medium");
-  const [duration,setDuration]=useState(1440);
-  const [streamError,setStreamError]=useState("");
-  const [subtitleTracks,setSubtitleTracks]=useState<SubtitleTrack[]>(initialSubtitleTracks);
-  const [markers,setMarkers]=useState<EpisodeMarker[]>(initialMarkers);
+  const partySequenceRef = useRef(0);
+  const applyingPartyEventRef = useRef(false);
+  const [partyStatus, setPartyStatus] = useState("");
+  const [source, setSource] = useState<string>();
+  const [speed, setSpeed] = useState(1);
+  const [quality, setQuality] = useState(-1);
+  const [qualities, setQualities] = useState<QualityOption[]>([]);
+  const [audio, setAudio] = useState(0);
+  const [audioTracks, setAudioTracks] = useState<
+    Array<{ id: number; label: string }>
+  >([]);
+  const [captions, setCaptions] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [autoplay, setAutoplay] = useState(true);
+  const [subtitleSize, setSubtitleSize] = useState("Medium");
+  const [duration, setDuration] = useState(1440);
+  const [streamError, setStreamError] = useState("");
+  const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>(
+    initialSubtitleTracks,
+  );
+  const [markers, setMarkers] = useState<EpisodeMarker[]>(initialMarkers);
   const { library, dispatch } = useLibrary();
   const saved = library.progress.find(
     (item) => item.slug === slug && item.episode === episode,
   );
   const [position, setPosition] = useState(saved?.position ?? 0);
+  const receivePartyEvent = useCallback((event: PartyEvent) => {
+    if (event.type !== "playback" || event.sequence <= partySequenceRef.current)
+      return;
+    partySequenceRef.current = event.sequence;
+    const video = videoRef.current;
+    if (!video) return;
+    applyingPartyEventRef.current = true;
+    const target = synchronizedPosition(event);
+    if (Math.abs(video.currentTime - target) > 0.75)
+      video.currentTime = Math.min(target, video.duration || target);
+    video.playbackRate = event.playbackRate;
+    if (event.action === "play") void video.play();
+    else if (event.action === "pause") video.pause();
+    setPartyStatus(`Synced with ${event.author}`);
+    window.setTimeout(() => {
+      applyingPartyEventRef.current = false;
+    }, 150);
+  }, []);
+  const { mode: partyMode, send: sendPartyEvent } = usePartyTransport(
+    partyId,
+    receivePartyEvent,
+  );
 
-  const reportEvent=useCallback((eventType:"start"|"progress"|"seek"|"complete",next:number,duration:number)=>{void fetch("/api/v1/playback/events",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({slug,episode,eventType,position:Math.max(0,Math.floor(next)),duration:Math.max(1,Math.floor(duration||1440))})}).catch(()=>undefined)},[episode,slug]);
+  const reportEvent = useCallback(
+    (
+      eventType: "start" | "progress" | "seek" | "complete",
+      next: number,
+      duration: number,
+    ) => {
+      void fetch("/api/v1/playback/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          episode,
+          eventType,
+          position: Math.max(0, Math.floor(next)),
+          duration: Math.max(1, Math.floor(duration || 1440)),
+        }),
+      }).catch(() => undefined);
+    },
+    [episode, slug],
+  );
 
-  useEffect(()=>{const objectUrls:string[]=[];let cancelled=false;async function resolveSource(){if(managedEpisodeId){const response=await fetch(`/api/v1/playback/${managedEpisodeId}`,{cache:"no-store"});if(response.ok){const data=await response.json() as {url:string;subtitles?:SubtitleTrack[];markers?:EpisodeMarker[]};if(!cancelled){setSource(data.url);setSubtitleTracks(data.subtitles??[]);setMarkers(data.markers?.length?data.markers:demoEpisodeMarkers);}return;}}const assets=await getAllRecords<StoredMedia>("media");const asset=assets.find((item)=>item.kind==="video"&&(item.titleId===slug||assets.length===1));if(asset&&!cancelled){const url=URL.createObjectURL(asset.blob);objectUrls.push(url);setSource(url);}const localSubtitles=assets.filter((item)=>item.kind==="subtitle"&&item.titleId===slug).map((item,index)=>{const url=URL.createObjectURL(item.blob);objectUrls.push(url);return{src:url,language:item.language??"en",label:item.label??item.filename??`Subtitle ${index+1}`,default:index===0};});if(!cancelled&&localSubtitles.length)setSubtitleTracks(localSubtitles);const localMarkers=await getAllRecords<ChapterMarker>("chapters");const episodeMarkers=localMarkers.filter((item)=>item.titleId===slug&&item.episode===episode).sort((a,b)=>a.start-b.start).map((item)=>({id:item.id,label:item.label,start:item.start,end:item.end,kind:item.kind}));if(!cancelled&&episodeMarkers.length)setMarkers(episodeMarkers);}void resolveSource().catch(()=>undefined);return()=>{cancelled=true;for(const url of objectUrls)URL.revokeObjectURL(url);};},[episode,managedEpisodeId,slug]);
-  useEffect(()=>{const video=videoRef.current;if(!video||!source?.includes(".m3u8"))return;let cancelled=false;if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;setStreamError("");return;}void import("hls.js").then(({default:Hls})=>{if(cancelled)return;if(!Hls.isSupported()){setStreamError("Adaptive streaming is not supported by this browser.");return;}const hls=new Hls({enableWorker:true,startLevel:-1,capLevelToPlayerSize:true});hlsRef.current=hls;hls.on(Hls.Events.MANIFEST_PARSED,()=>{setQualities(qualityOptions(hls.levels));setStreamError("");});hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,data)=>setAudioTracks(data.audioTracks.map((track,index)=>({id:index,label:track.name||track.lang||`Track ${index+1}`}))));hls.on(Hls.Events.ERROR,(_,data)=>{if(!data.fatal)return;if(data.type===Hls.ErrorTypes.NETWORK_ERROR)hls.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else{setStreamError("This stream could not be played.");hls.destroy();}});hls.loadSource(source);hls.attachMedia(video);});return()=>{cancelled=true;hlsRef.current?.destroy();hlsRef.current=null;setQualities([]);setAudioTracks([]);};},[source]);
-  useEffect(()=>{const video=videoRef.current;if(!video)return;for(const track of Array.from(video.textTracks))track.mode=captions?"showing":"disabled";},[captions,source]);
-  useEffect(()=>{const handler=(event:KeyboardEvent)=>{if(event.target instanceof HTMLInputElement)return;const video=videoRef.current;if(!video)return;if(event.key===" "){event.preventDefault();void(video.paused?video.play():video.pause());}if(event.key==="ArrowRight")video.currentTime=Math.min(video.duration||Infinity,video.currentTime+10);if(event.key==="ArrowLeft")video.currentTime=Math.max(0,video.currentTime-10);if(event.key.toLowerCase()==="f")void video.requestFullscreen();};window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);},[]);
+  useEffect(() => {
+    const objectUrls: string[] = [];
+    let cancelled = false;
+    async function resolveSource() {
+      if (managedEpisodeId) {
+        const response = await fetch(`/api/v1/playback/${managedEpisodeId}`, {
+          cache: "no-store",
+        });
+        if (response.ok) {
+          const data = (await response.json()) as {
+            url: string;
+            subtitles?: SubtitleTrack[];
+            markers?: EpisodeMarker[];
+          };
+          if (!cancelled) {
+            setSource(data.url);
+            setSubtitleTracks(data.subtitles ?? []);
+            setMarkers(
+              data.markers?.length ? data.markers : demoEpisodeMarkers,
+            );
+          }
+          return;
+        }
+      }
+      const assets = await getAllRecords<StoredMedia>("media");
+      const asset = assets.find(
+        (item) =>
+          item.kind === "video" &&
+          (item.titleId === slug || assets.length === 1),
+      );
+      if (asset && !cancelled) {
+        const url = URL.createObjectURL(asset.blob);
+        objectUrls.push(url);
+        setSource(url);
+      }
+      const localSubtitles = assets
+        .filter((item) => item.kind === "subtitle" && item.titleId === slug)
+        .map((item, index) => {
+          const url = URL.createObjectURL(item.blob);
+          objectUrls.push(url);
+          return {
+            src: url,
+            language: item.language ?? "en",
+            label: item.label ?? item.filename ?? `Subtitle ${index + 1}`,
+            default: index === 0,
+          };
+        });
+      if (!cancelled && localSubtitles.length)
+        setSubtitleTracks(localSubtitles);
+      const localMarkers = await getAllRecords<ChapterMarker>("chapters");
+      const episodeMarkers = localMarkers
+        .filter((item) => item.titleId === slug && item.episode === episode)
+        .sort((a, b) => a.start - b.start)
+        .map((item) => ({
+          id: item.id,
+          label: item.label,
+          start: item.start,
+          end: item.end,
+          kind: item.kind,
+        }));
+      if (!cancelled && episodeMarkers.length) setMarkers(episodeMarkers);
+    }
+    void resolveSource().catch(() => undefined);
+    return () => {
+      cancelled = true;
+      for (const url of objectUrls) URL.revokeObjectURL(url);
+    };
+  }, [episode, managedEpisodeId, slug]);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !source?.includes(".m3u8")) return;
+    let cancelled = false;
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = source;
+      setStreamError("");
+      return;
+    }
+    void import("hls.js").then(({ default: Hls }) => {
+      if (cancelled) return;
+      if (!Hls.isSupported()) {
+        setStreamError("Adaptive streaming is not supported by this browser.");
+        return;
+      }
+      const hls = new Hls({
+        enableWorker: true,
+        startLevel: -1,
+        capLevelToPlayerSize: true,
+      });
+      hlsRef.current = hls;
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setQualities(qualityOptions(hls.levels));
+        setStreamError("");
+      });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) =>
+        setAudioTracks(
+          data.audioTracks.map((track, index) => ({
+            id: index,
+            label: track.name || track.lang || `Track ${index + 1}`,
+          })),
+        ),
+      );
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR)
+          hls.recoverMediaError();
+        else {
+          setStreamError("This stream could not be played.");
+          hls.destroy();
+        }
+      });
+      hls.loadSource(source);
+      hls.attachMedia(video);
+    });
+    return () => {
+      cancelled = true;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      setQualities([]);
+      setAudioTracks([]);
+    };
+  }, [source]);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    for (const track of Array.from(video.textTracks))
+      track.mode = captions ? "showing" : "disabled";
+  }, [captions, source]);
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement) return;
+      const video = videoRef.current;
+      if (!video) return;
+      if (event.key === " ") {
+        event.preventDefault();
+        void (video.paused ? video.play() : video.pause());
+      }
+      if (event.key === "ArrowRight")
+        video.currentTime = Math.min(
+          video.duration || Infinity,
+          video.currentTime + 10,
+        );
+      if (event.key === "ArrowLeft")
+        video.currentTime = Math.max(0, video.currentTime - 10);
+      if (event.key.toLowerCase() === "f") void video.requestFullscreen();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
-  function togglePlayback(){const video=videoRef.current;if(video)void(video.paused?video.play():video.pause());else setPlaying((value)=>!value);}
-  function toggleCaptions(){const next=!captions;setCaptions(next);const video=videoRef.current;if(video)for(const track of Array.from(video.textTracks))track.mode=next?"showing":"disabled";}
-  function toggleMuted(){const video=videoRef.current;const next=!muted;setMuted(next);if(video)video.muted=next;}
-  function seekTo(next:number){if(videoRef.current)videoRef.current.currentTime=next;saveProgress(next);reportEvent("seek",next,videoRef.current?.duration||1440);}
+  function togglePlayback() {
+    const video = videoRef.current;
+    if (video) void (video.paused ? video.play() : video.pause());
+    else setPlaying((value) => !value);
+  }
+  function toggleCaptions() {
+    const next = !captions;
+    setCaptions(next);
+    const video = videoRef.current;
+    if (video)
+      for (const track of Array.from(video.textTracks))
+        track.mode = next ? "showing" : "disabled";
+  }
+  function toggleMuted() {
+    const video = videoRef.current;
+    const next = !muted;
+    setMuted(next);
+    if (video) video.muted = next;
+  }
+  function seekTo(next: number) {
+    if (videoRef.current) videoRef.current.currentTime = next;
+    saveProgress(next);
+    reportEvent("seek", next, videoRef.current?.duration || 1440);
+  }
+  function broadcastParty(action: PartyPlaybackEvent["action"], next: number) {
+    if (!partyId || !partyController || applyingPartyEventRef.current) return;
+    const sequence = Math.max(Date.now(), partySequenceRef.current + 1);
+    partySequenceRef.current = sequence;
+    void sendPartyEvent({
+      id: crypto.randomUUID(),
+      author: "Host",
+      body: `${action} at ${Math.floor(next)} seconds`,
+      type: "playback",
+      action,
+      position: next,
+      playbackRate: videoRef.current?.playbackRate ?? 1,
+      sentAt: Date.now(),
+      sequence,
+    });
+  }
 
   function saveProgress(next: number) {
     setPosition(next);
-    void dispatch({ type: "save-progress", progress: {
-          slug,
-          title,
-          episode,
-          position: next,
-          duration: Math.max(1, Math.floor(videoRef.current?.duration || 1440)),
-          watchedAt: new Date().toISOString(),
-          completed: next / Math.max(1, videoRef.current?.duration || 1440) >= .9,
-        }});
+    void dispatch({
+      type: "save-progress",
+      progress: {
+        slug,
+        title,
+        episode,
+        position: next,
+        duration: Math.max(1, Math.floor(videoRef.current?.duration || 1440)),
+        watchedAt: new Date().toISOString(),
+        completed:
+          next / Math.max(1, videoRef.current?.duration || 1440) >= 0.9,
+      },
+    });
   }
 
   return (
     <main className="watch-shell">
       <header>
         <Link className="brand" href="/">
-          <span className="brand-orbit"><span /></span>
-          <span>Ani<span>Verse</span></span>
+          <span className="brand-orbit">
+            <span />
+          </span>
+          <span>
+            Ani<span>Verse</span>
+          </span>
         </Link>
         <Link href={`/anime/${slug}`}>Back to series</Link>
       </header>
       <section className="video-stage">
-        {source&&<video className={`subtitles-${subtitleSize.toLowerCase()}`} ref={videoRef} src={source.includes(".m3u8")?undefined:source} playsInline onPlay={(event)=>{setPlaying(true);reportEvent("start",event.currentTarget.currentTime,event.currentTarget.duration)}} onPause={(event)=>{setPlaying(false);saveProgress(Math.floor(event.currentTarget.currentTime))}} onTimeUpdate={(event)=>{const next=Math.floor(event.currentTarget.currentTime);setPosition(next);if(next-lastSavedRef.current>=15){lastSavedRef.current=next;saveProgress(next)}if(next-lastEventRef.current>=30){lastEventRef.current=next;reportEvent("progress",next,event.currentTarget.duration)}}} onEnded={(event)=>{saveProgress(Math.floor(event.currentTarget.duration));reportEvent("complete",event.currentTarget.duration,event.currentTarget.duration);if(autoplay&&episode<totalEpisodes)window.location.assign(`/watch/${slug}/${episode+1}`);}} onLoadedMetadata={(event)=>{setDuration(event.currentTarget.duration||1440);event.currentTarget.currentTime=Math.min(saved?.position??0,event.currentTarget.duration);lastSavedRef.current=event.currentTarget.currentTime;lastEventRef.current=event.currentTarget.currentTime;}}>{subtitleTracks.map((track)=><track key={`${track.language}-${track.src}`} kind="subtitles" src={track.src} srcLang={track.language} label={track.label} default={track.default}/>)}</video>}
+        {source && (
+          <video
+            className={`subtitles-${subtitleSize.toLowerCase()}`}
+            ref={videoRef}
+            src={source.includes(".m3u8") ? undefined : source}
+            playsInline
+            onPlay={(event) => {
+              setPlaying(true);
+              reportEvent(
+                "start",
+                event.currentTarget.currentTime,
+                event.currentTarget.duration,
+              );
+              broadcastParty("play", event.currentTarget.currentTime);
+            }}
+            onPause={(event) => {
+              setPlaying(false);
+              saveProgress(Math.floor(event.currentTarget.currentTime));
+              broadcastParty("pause", event.currentTarget.currentTime);
+            }}
+            onSeeked={(event) =>
+              broadcastParty("seek", event.currentTarget.currentTime)
+            }
+            onTimeUpdate={(event) => {
+              const next = Math.floor(event.currentTarget.currentTime);
+              setPosition(next);
+              if (next - lastSavedRef.current >= 15) {
+                lastSavedRef.current = next;
+                saveProgress(next);
+              }
+              if (next - lastEventRef.current >= 30) {
+                lastEventRef.current = next;
+                reportEvent("progress", next, event.currentTarget.duration);
+              }
+            }}
+            onEnded={(event) => {
+              saveProgress(Math.floor(event.currentTarget.duration));
+              reportEvent(
+                "complete",
+                event.currentTarget.duration,
+                event.currentTarget.duration,
+              );
+              if (autoplay && episode < totalEpisodes)
+                window.location.assign(`/watch/${slug}/${episode + 1}`);
+            }}
+            onLoadedMetadata={(event) => {
+              setDuration(event.currentTarget.duration || 1440);
+              event.currentTarget.currentTime = Math.min(
+                saved?.position ?? 0,
+                event.currentTarget.duration,
+              );
+              lastSavedRef.current = event.currentTarget.currentTime;
+              lastEventRef.current = event.currentTarget.currentTime;
+            }}
+          >
+            {subtitleTracks.map((track) => (
+              <track
+                key={`${track.language}-${track.src}`}
+                kind="subtitles"
+                src={track.src}
+                srcLang={track.language}
+                label={track.label}
+                default={track.default}
+              />
+            ))}
+          </video>
+        )}
         <div className="video-art">
-          <span>{title.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
+          <span>
+            {title
+              .split(" ")
+              .map((part) => part[0])
+              .join("")
+              .slice(0, 2)}
+          </span>
           <p>{playing ? "Playing local preview" : "Local secure preview"}</p>
         </div>
         <button
@@ -112,7 +445,11 @@ export function LocalPlayer({
           aria-label={playing ? "Pause" : "Play"}
           onClick={togglePlayback}
         >
-          {playing ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
+          {playing ? (
+            <Pause fill="currentColor" />
+          ) : (
+            <Play fill="currentColor" />
+          )}
         </button>
         <div className="video-controls">
           <input
@@ -125,25 +462,175 @@ export function LocalPlayer({
           />
           <div>
             <span>
-              <button aria-label="Previous episode"><SkipBack /></button>
+              <button aria-label="Previous episode">
+                <SkipBack />
+              </button>
               <button
                 aria-label={playing ? "Pause" : "Play"}
                 onClick={togglePlayback}
               >
                 {playing ? <Pause /> : <Play />}
               </button>
-              <button aria-label="Next episode"><SkipForward /></button>
-              <button aria-label={muted ? "Unmute" : "Mute"} onClick={toggleMuted}><Volume2 className={muted ? "muted" : ""} /></button>
+              <button aria-label="Next episode">
+                <SkipForward />
+              </button>
+              <button
+                aria-label={muted ? "Unmute" : "Mute"}
+                onClick={toggleMuted}
+              >
+                <Volume2 className={muted ? "muted" : ""} />
+              </button>
             </span>
-            <time>{formatPlaybackTime(position)} / {formatPlaybackTime(duration)}</time>
-            <span><button aria-label="Picture in picture" onClick={()=>{const video=videoRef.current;if(video&&document.pictureInPictureEnabled)void video.requestPictureInPicture();}}><PictureInPicture/></button><button aria-label="Playback speed" onClick={()=>{const next=speed>=2?0.5:speed+0.5;setSpeed(next);if(videoRef.current)videoRef.current.playbackRate=next;}}>{speed}×</button><button aria-label="Fullscreen" onClick={()=>{if(videoRef.current)void videoRef.current.requestFullscreen();}}><Maximize/></button><button aria-label="Toggle captions" className={captions?"active":""} onClick={toggleCaptions}><Captions /></button></span>
+            <time>
+              {formatPlaybackTime(position)} / {formatPlaybackTime(duration)}
+            </time>
+            <span>
+              <button
+                aria-label="Picture in picture"
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (video && document.pictureInPictureEnabled)
+                    void video.requestPictureInPicture();
+                }}
+              >
+                <PictureInPicture />
+              </button>
+              <button
+                aria-label="Playback speed"
+                onClick={() => {
+                  const next = speed >= 2 ? 0.5 : speed + 0.5;
+                  setSpeed(next);
+                  if (videoRef.current) videoRef.current.playbackRate = next;
+                }}
+              >
+                {speed}×
+              </button>
+              <button
+                aria-label="Fullscreen"
+                onClick={() => {
+                  if (videoRef.current)
+                    void videoRef.current.requestFullscreen();
+                }}
+              >
+                <Maximize />
+              </button>
+              <button
+                aria-label="Toggle captions"
+                className={captions ? "active" : ""}
+                onClick={toggleCaptions}
+              >
+                <Captions />
+              </button>
+            </span>
           </div>
         </div>
       </section>
-      <section className="player-options" aria-label="Playback options">{streamError&&<p className="stream-error" role="alert">{streamError}</p>}<div className="chapter-strip" style={{gridTemplateColumns:`repeat(${Math.min(4,Math.max(1,markers.length))},1fr)`}}>{markers.map((marker)=><button key={marker.id} onClick={()=>seekTo(marker.start)}>{marker.label} <span>{formatPlaybackTime(marker.start)}</span></button>)}</div><div className="track-options"><label>Quality<select aria-label="Video quality" value={quality} onChange={(event)=>{const level=Number(event.target.value);setQuality(level);if(hlsRef.current)hlsRef.current.currentLevel=level;}}><option value={-1}>Auto</option>{qualities.map((option)=><option key={option.level} value={option.level}>{option.label}</option>)}</select></label><label>Audio<select aria-label="Audio track" value={audio} disabled={!audioTracks.length} onChange={(event)=>{const track=Number(event.target.value);setAudio(track);if(hlsRef.current)hlsRef.current.audioTrack=track;}}>{audioTracks.length?audioTracks.map((track)=><option key={track.id} value={track.id}>{track.label}</option>):<option value={0}>Stream default</option>}</select></label><label>Subtitle size<select aria-label="Subtitle size" value={subtitleSize} onChange={(event)=>setSubtitleSize(event.target.value)}><option>Small</option><option>Medium</option><option>Large</option></select></label><label className="autoplay-option"><input type="checkbox" checked={autoplay} onChange={(event)=>setAutoplay(event.target.checked)}/>Autoplay next</label></div>{activeSkipMarker(markers,position)&&<button className="skip-segment" onClick={()=>seekTo(activeSkipMarker(markers,position)!.end!)}>Skip {activeSkipMarker(markers,position)!.kind}</button>}</section>
+      {partyId && (
+        <p className="party-sync-status" role="status">
+          <UsersRound size={14} />
+          {partyController
+            ? "You control this party"
+            : "Following the host"} ·{" "}
+          {partyMode === "cloud" ? "cross-device sync" : "local sync"}
+          {partyStatus && ` · ${partyStatus}`}
+        </p>
+      )}
+      <section className="player-options" aria-label="Playback options">
+        {streamError && (
+          <p className="stream-error" role="alert">
+            {streamError}
+          </p>
+        )}
+        <div
+          className="chapter-strip"
+          style={{
+            gridTemplateColumns: `repeat(${Math.min(4, Math.max(1, markers.length))},1fr)`,
+          }}
+        >
+          {markers.map((marker) => (
+            <button key={marker.id} onClick={() => seekTo(marker.start)}>
+              {marker.label} <span>{formatPlaybackTime(marker.start)}</span>
+            </button>
+          ))}
+        </div>
+        <div className="track-options">
+          <label>
+            Quality
+            <select
+              aria-label="Video quality"
+              value={quality}
+              onChange={(event) => {
+                const level = Number(event.target.value);
+                setQuality(level);
+                if (hlsRef.current) hlsRef.current.currentLevel = level;
+              }}
+            >
+              <option value={-1}>Auto</option>
+              {qualities.map((option) => (
+                <option key={option.level} value={option.level}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Audio
+            <select
+              aria-label="Audio track"
+              value={audio}
+              disabled={!audioTracks.length}
+              onChange={(event) => {
+                const track = Number(event.target.value);
+                setAudio(track);
+                if (hlsRef.current) hlsRef.current.audioTrack = track;
+              }}
+            >
+              {audioTracks.length ? (
+                audioTracks.map((track) => (
+                  <option key={track.id} value={track.id}>
+                    {track.label}
+                  </option>
+                ))
+              ) : (
+                <option value={0}>Stream default</option>
+              )}
+            </select>
+          </label>
+          <label>
+            Subtitle size
+            <select
+              aria-label="Subtitle size"
+              value={subtitleSize}
+              onChange={(event) => setSubtitleSize(event.target.value)}
+            >
+              <option>Small</option>
+              <option>Medium</option>
+              <option>Large</option>
+            </select>
+          </label>
+          <label className="autoplay-option">
+            <input
+              type="checkbox"
+              checked={autoplay}
+              onChange={(event) => setAutoplay(event.target.checked)}
+            />
+            Autoplay next
+          </label>
+        </div>
+        {activeSkipMarker(markers, position) && (
+          <button
+            className="skip-segment"
+            onClick={() => seekTo(activeSkipMarker(markers, position)!.end!)}
+          >
+            Skip {activeSkipMarker(markers, position)!.kind}
+          </button>
+        )}
+      </section>
       <section className="watch-info">
         <div>
-          <p>EPISODE {episode} OF {totalEpisodes}</p>
+          <p>
+            EPISODE {episode} OF {totalEpisodes}
+          </p>
           <h1>{title}</h1>
           <span>Where the sky remembers · English / Japanese · CC</span>
         </div>
@@ -151,10 +638,18 @@ export function LocalPlayer({
       </section>
       <nav className="episode-nav">
         {episode > 1 ? (
-          <Link href={`/watch/${slug}/${episode - 1}`}><SkipBack />Episode {episode - 1}</Link>
-        ) : <span />}
+          <Link href={`/watch/${slug}/${episode - 1}`}>
+            <SkipBack />
+            Episode {episode - 1}
+          </Link>
+        ) : (
+          <span />
+        )}
         {episode < totalEpisodes ? (
-          <Link href={`/watch/${slug}/${episode + 1}`}>Episode {episode + 1}<SkipForward /></Link>
+          <Link href={`/watch/${slug}/${episode + 1}`}>
+            Episode {episode + 1}
+            <SkipForward />
+          </Link>
         ) : null}
       </nav>
     </main>
