@@ -41,9 +41,10 @@ export function AudioTrackManager({ cloud }: { cloud: boolean }) {
       episodes: Episode[];
       tracks: Track[];
     };
-    setEpisodes(data.episodes);
-    setTracks(data.tracks);
-    setEpisodeId((current) => current || data.episodes[0]?.id || "");
+    const nextEpisodes = data.episodes ?? [];
+    setEpisodes(nextEpisodes);
+    setTracks(data.tracks ?? []);
+    setEpisodeId((current) => current || nextEpisodes[0]?.id || "");
   }
 
   useEffect(() => {
