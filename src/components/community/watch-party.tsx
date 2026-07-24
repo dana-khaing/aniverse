@@ -1,9 +1,15 @@
 "use client";
 
 import { Send, Users } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LocalPlayer } from "@/components/player/local-player";
+import {
+  PartyLobbyControls,
+  type PartyInvitation,
+  type PartyMember,
+} from "@/components/community/party-lobby-controls";
 import { type PartyEvent, usePartyTransport } from "@/lib/realtime-party";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export function WatchParty({ partyId }: { partyId: string }) {
   const [messages, setMessages] = useState<PartyEvent[]>([
@@ -15,6 +21,18 @@ export function WatchParty({ partyId }: { partyId: string }) {
     },
   ]);
   const [body, setBody] = useState("");
+  const [role, setRole] = useState<"host" | "moderator" | "viewer">("host");
+  const [status, setStatus] = useState<"scheduled" | "live" | "ended">("live");
+  const [inviteCode, setInviteCode] = useState("ASTERIA12");
+  const [members, setMembers] = useState<PartyMember[]>([
+    { user_id: "local-host", role: "host", profiles: { display_name: "Dana" } },
+    {
+      user_id: "local-viewer",
+      role: "viewer",
+      profiles: { display_name: "Mika" },
+    },
+  ]);
+  const [invitations, setInvitations] = useState<PartyInvitation[]>([]);
   const receive = useCallback((message: PartyEvent) => {
     if (message.type !== "chat") return;
     setMessages((current) =>
@@ -24,6 +42,32 @@ export function WatchParty({ partyId }: { partyId: string }) {
     );
   }, []);
   const { mode, send: sendEvent } = usePartyTransport(partyId, receive);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const controller = new AbortController();
+    void fetch(`/api/v1/parties/${encodeURIComponent(partyId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then(
+        (data: {
+          role: typeof role;
+          party: { status: typeof status; invite_code: string };
+          members: PartyMember[];
+          invitations: PartyInvitation[];
+        }) => {
+          setRole(data.role);
+          setStatus(data.party.status);
+          setInviteCode(data.party.invite_code);
+          setMembers(data.members);
+          setInvitations(data.invitations);
+        },
+      )
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [partyId]);
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
@@ -63,7 +107,7 @@ export function WatchParty({ partyId }: { partyId: string }) {
             episode={12}
             totalEpisodes={12}
             partyId={partyId}
-            partyController
+            partyController={role === "host" || role === "moderator"}
           />
         </div>
         <aside>
@@ -87,6 +131,15 @@ export function WatchParty({ partyId }: { partyId: string }) {
               <Send />
             </button>
           </form>
+          <PartyLobbyControls
+            partyId={partyId}
+            inviteCode={inviteCode}
+            role={role}
+            status={status}
+            members={members}
+            invitations={invitations}
+            onStatus={setStatus}
+          />
         </aside>
       </section>
     </main>
