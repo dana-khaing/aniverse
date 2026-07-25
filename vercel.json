@@ -3,5 +3,11 @@
   "framework": "nextjs",
   "regions": ["lhr1"],
   "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --frozen-lockfile"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "crons": [
+    {
+      "path": "/api/v1/admin/strikes/expire",
+      "schedule": "15 1 * * *"
+    }
+  ]
 }
