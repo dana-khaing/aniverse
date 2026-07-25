@@ -4,6 +4,7 @@ export const notificationSettingsSchema = z.object({
   releaseEmail: z.boolean(),
   communityEmail: z.boolean(),
   creatorEmail: z.boolean(),
+  pushEnabled: z.boolean(),
   inAppEnabled: z.boolean(),
 });
 
