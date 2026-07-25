@@ -18,3 +18,17 @@ export const evidenceDecisionSchema = z.object({
   decision: z.enum(["verified", "rejected"]),
   notes: z.string().trim().max(2000).default(""),
 });
+
+export const enforcementActionSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("execute-takedown"),
+    id: z.string().uuid(),
+    notes: z.string().trim().min(10).max(2000),
+  }),
+  z.object({
+    action: z.literal("resolve-appeal"),
+    id: z.string().uuid(),
+    decision: z.enum(["approved", "denied"]),
+    notes: z.string().trim().min(10).max(2000),
+  }),
+]);
