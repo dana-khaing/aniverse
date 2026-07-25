@@ -20,6 +20,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { EvidenceReview } from "@/components/admin/evidence-review";
 import { EnforcementCenter } from "@/components/admin/enforcement-center";
 import { AuditTimeline } from "@/components/admin/audit-timeline";
+import { AdminUserManager } from "@/components/admin/admin-user-manager";
 export function AdminDashboard() {
   const [moderation, setModeration] = useLocalDemoState(
     "aniverse.moderation",
@@ -188,6 +189,7 @@ export function AdminDashboard() {
       <EvidenceReview />
       <EnforcementCenter />
       <AuditTimeline />
+      <AdminUserManager />
       <div className="admin-columns">
         <section className="moderation-panel">
           <div className="panel-title">
