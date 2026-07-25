@@ -5,7 +5,7 @@ import { EvidenceReview } from "./evidence-review";
 describe("EvidenceReview", () => {
   it("documents and verifies pending evidence in local mode", async () => {
     render(<EvidenceReview />);
-    expect(screen.getByText("Targeted harassment")).toBeInTheDocument();
+    expect(screen.getAllByText("Targeted harassment")).toHaveLength(2);
     expect(screen.getByText(/SHA-256/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Evidence review notes"), {
       target: { value: "Source and hash checked." },
