@@ -10,7 +10,7 @@ describe("AdminUserManager", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(screen.getAllByText("mika@example.com")).toHaveLength(2);
-    fireEvent.click(screen.getByRole("listitem", { name: /Mika/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Mika/ }));
     fireEvent.change(screen.getByLabelText("Role"), {
       target: { value: "creator" },
     });

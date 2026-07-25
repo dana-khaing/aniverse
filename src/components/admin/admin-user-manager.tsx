@@ -222,11 +222,10 @@ export function AdminUserManager() {
         <button disabled={busy}>Search</button>
       </form>
       <div className="admin-user-layout">
-        <div className="admin-user-list" role="list">
+        <nav className="admin-user-list" aria-label="User directory">
           {visibleUsers.map((user) => (
             <button
               type="button"
-              role="listitem"
               aria-label={`${user.displayName}, ${user.email}`}
               key={user.id}
               aria-current={selected === user.id}
@@ -277,7 +276,7 @@ export function AdminUserManager() {
               </button>
             </footer>
           )}
-        </div>
+        </nav>
         {active && (
           <article className="admin-user-detail">
             <header>
