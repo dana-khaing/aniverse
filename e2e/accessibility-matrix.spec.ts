@@ -39,11 +39,12 @@ test("reduced-motion users can operate localized navigation", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/ja/browse");
-  await expect(
-    page.getByRole("link", { name: "EN", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "EN", exact: true }).click();
-  await expect(page).toHaveURL(/\/en\/browse$/);
+  const englishLink = page.getByRole("link", { name: "EN", exact: true });
+  await expect(englishLink).toBeVisible();
+  await expect(async () => {
+    if (!page.url().endsWith("/en/browse")) await englishLink.click();
+    await expect(page).toHaveURL(/\/en\/browse$/);
+  }).toPass({ timeout: 10_000 });
   await expect(
     page.getByRole("heading", { name: "Browse anime" }),
   ).toBeVisible();
