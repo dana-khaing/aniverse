@@ -1,0 +1,126 @@
+.readiness-panel > .panel-head > select {
+  min-width: 240px;
+  background: #09090e;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #fff;
+  padding: 10px;
+}
+.readiness-layout {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 18px;
+}
+.readiness-score {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 30%, #a45fff20, transparent 60%);
+  padding: 20px;
+}
+.readiness-score strong {
+  color: #c79aff;
+  font-size: 34px;
+}
+.readiness-score progress {
+  width: 100%;
+  height: 7px;
+  margin: 12px 0;
+  accent-color: #a45fff;
+}
+.readiness-score span {
+  color: #77717f;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.readiness-checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.readiness-checks a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #ff6d8f2d;
+  border-radius: 7px;
+  background: #ff54730a;
+  padding: 10px;
+}
+.readiness-checks a.complete {
+  border-color: #4acb8a2d;
+  background: #4acb8a08;
+}
+.readiness-checks svg {
+  width: 16px;
+  color: #ff8099;
+}
+.readiness-checks a.complete svg {
+  color: #65dda0;
+}
+.readiness-checks b,
+.readiness-checks small {
+  display: block;
+}
+.readiness-checks b {
+  font-size: 9px;
+}
+.readiness-checks small {
+  color: #77717f;
+  font-size: 7px;
+  margin-top: 3px;
+}
+.readiness-layout footer {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.readiness-layout footer span {
+  margin-right: auto;
+  color: #77717f;
+  font-size: 8px;
+  text-transform: capitalize;
+}
+.readiness-layout footer button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 6px;
+  background: #a45fff;
+  color: #fff;
+  padding: 10px 14px;
+}
+.readiness-layout footer button:disabled {
+  opacity: 0.45;
+}
+.readiness-layout footer svg {
+  width: 15px;
+}
+.readiness-panel > p[role="status"] {
+  color: #c99dff;
+  font-size: 9px;
+}
+@media (max-width: 720px) {
+  .readiness-panel > .panel-head > select {
+    width: 100%;
+    min-width: 0;
+  }
+  .readiness-layout {
+    grid-template-columns: 1fr;
+  }
+  .readiness-checks {
+    grid-template-columns: 1fr;
+  }
+  .readiness-layout footer {
+    grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

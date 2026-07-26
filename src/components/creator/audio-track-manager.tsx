@@ -99,7 +99,7 @@ export function AudioTrackManager({ cloud }: { cloud: boolean }) {
   }
 
   return (
-    <section className="studio-panel audio-track-manager">
+    <section id="audio-tracks" className="studio-panel audio-track-manager">
       <div className="panel-head">
         <div>
           <p>MULTI-LANGUAGE SOUND</p>

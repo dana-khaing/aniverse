@@ -20,6 +20,7 @@ import { EpisodeMarkerEditor } from "@/components/creator/episode-marker-editor"
 import { TitleAssetManager } from "@/components/creator/title-asset-manager";
 import { TranslationManager } from "@/components/creator/translation-manager";
 import { AudioTrackManager } from "@/components/creator/audio-track-manager";
+import { ReleaseReadiness } from "@/components/creator/release-readiness";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
 import {
@@ -1088,6 +1089,7 @@ export function CreatorWorkspace() {
             }))}
           />
         </section>
+        <ReleaseReadiness cloud={cloud} />
         <TitleAssetManager cloud={cloud} />
         <TranslationManager cloud={cloud} />
         <AudioTrackManager cloud={cloud} />
