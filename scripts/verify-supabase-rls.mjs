@@ -42,13 +42,15 @@ async function signIn(client, email, password) {
     email,
     password,
   });
-  if (error || !data.user) throw new Error("A verification account could not sign in");
+  if (error || !data.user)
+    throw new Error("A verification account could not sign in");
   return data.user;
 }
 
 async function query(client, table, columns = "*") {
   const result = await client.from(table).select(columns);
-  if (result.error) throw new Error(`${table} query failed: ${result.error.message}`);
+  if (result.error)
+    throw new Error(`${table} query failed: ${result.error.message}`);
   return result.data ?? [];
 }
 
@@ -97,7 +99,10 @@ try {
       .select("id")
       .single(),
   ]);
-  assert(!createdA.error && !createdB.error, "each user can create an owned list");
+  assert(
+    !createdA.error && !createdB.error,
+    "each user can create an owned list",
+  );
 
   const [aReadsA, aReadsB, bReadsA, bReadsB] = await Promise.all([
     userA.from("custom_lists").select("id,user_id").eq("id", fixtureIds.a),
@@ -137,17 +142,26 @@ try {
     user_id: identityA.id,
     role: "admin",
   });
-  assert(Boolean(escalation.error), "client-side admin role escalation is rejected");
+  assert(
+    Boolean(escalation.error),
+    "client-side admin role escalation is rejected",
+  );
 
   console.log(
     JSON.stringify(
-      { status: "passed", checks: checks.length, verifiedAt: new Date().toISOString() },
+      {
+        status: "passed",
+        checks: checks.length,
+        verifiedAt: new Date().toISOString(),
+      },
       null,
       2,
     ),
   );
 } catch (error) {
-  console.error(error instanceof Error ? error.message : "Live RLS verification failed");
+  console.error(
+    error instanceof Error ? error.message : "Live RLS verification failed",
+  );
   process.exitCode = 1;
 } finally {
   await cleanup();
