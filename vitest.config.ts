@@ -9,5 +9,10 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     exclude: ["e2e/**", "node_modules/**", ".next/**"],
   },
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "server-only": path.resolve(__dirname, "./src/test/server-only.ts"),
+    },
+  },
 });

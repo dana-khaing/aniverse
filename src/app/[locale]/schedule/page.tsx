@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  LocalizedBrowsePage,
-  type BrowseParams,
-} from "@/components/catalog/localized-browse-page";
+import { LocalizedSchedulePage } from "@/components/catalog/localized-schedule-page";
 import { isLocale, messages } from "@/lib/i18n";
 
 export async function generateMetadata({
@@ -13,24 +10,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const copy = messages[locale].browse;
+  const copy = messages[locale].schedule;
   return {
     title: `${copy.title} | AniVerse`,
     description: copy.copy,
     alternates: {
-      languages: { en: "/en/browse", ja: "/ja/browse" },
+      languages: { en: "/en/schedule", ja: "/ja/schedule" },
     },
   };
 }
 
-export default async function LocaleBrowse({
+export default async function LocaleSchedule({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<BrowseParams>;
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <LocalizedBrowsePage locale={locale} searchParams={searchParams} />;
+  return <LocalizedSchedulePage locale={locale} />;
 }
