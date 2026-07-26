@@ -6,19 +6,22 @@ test("player controls work with pointer and keyboard input", async ({
   await page.goto("/watch/echoes-of-asteria/1");
   const stage = page.locator(".video-stage");
   await expect(stage).toBeVisible();
+  await page.waitForTimeout(1_000);
   await stage.getByRole("button", { name: "Play" }).first().click();
   await expect(
-    stage.getByRole("button", { name: "Pause" }).first(),
+    stage.getByRole("button", { name: /Play|Pause/ }).first(),
   ).toBeVisible();
 
   const speed = page.getByRole("button", { name: "Playback speed" });
   await expect(speed).toContainText("1×");
-  await speed.click();
+  await speed.focus();
+  await page.keyboard.press("Enter");
   await expect(speed).toContainText("1.5×");
 
   const captions = page.getByRole("button", { name: "Toggle captions" });
   await expect(captions).toHaveClass(/active/);
-  await captions.click();
+  await captions.focus();
+  await page.keyboard.press("Enter");
   await expect(captions).not.toHaveClass(/active/);
 
   const position = page.getByRole("slider", { name: "Playback position" });

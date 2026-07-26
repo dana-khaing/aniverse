@@ -68,6 +68,7 @@
 }
 @media (max-width: 760px) {
   .catalog-header .locale-switcher {
+    display: flex;
     margin-left: auto;
   }
   .catalog-header .header-actions {
