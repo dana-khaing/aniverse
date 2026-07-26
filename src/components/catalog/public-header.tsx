@@ -5,8 +5,15 @@ import {
   HeaderActions,
   MobileDock,
 } from "@/components/catalog/site-navigation";
+import { LocaleSwitcher } from "@/components/catalog/locale-switcher";
 
-export function PublicHeader({ locale = "en" }: { locale?: Locale }) {
+export function PublicHeader({
+  locale = "en",
+  path = "/",
+}: {
+  locale?: Locale;
+  path?: string;
+}) {
   const copy = messages[locale];
   return (
     <>
@@ -21,6 +28,7 @@ export function PublicHeader({ locale = "en" }: { locale?: Locale }) {
           <Link href="/charts/seasonal">{copy.nav.charts}</Link>
           <Link href="/community">{copy.nav.community}</Link>
         </nav>
+        <LocaleSwitcher locale={locale} path={path} />
         <HeaderActions compact locale={locale} />
       </header>
       <MobileDock locale={locale} />

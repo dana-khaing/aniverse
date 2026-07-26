@@ -57,7 +57,7 @@ export async function LocalizedBrowsePage({
   );
   return (
     <>
-      <PublicHeader locale={locale} />
+      <PublicHeader locale={locale} path="/browse" />
       <main className="catalog-page">
         <div className="catalog-title">
           <p>{copy.eyebrow}</p>

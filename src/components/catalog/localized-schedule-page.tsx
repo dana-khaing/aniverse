@@ -9,7 +9,7 @@ export async function LocalizedSchedulePage({ locale }: { locale: Locale }) {
   const copy = messages[locale].schedule;
   return (
     <>
-      <PublicHeader locale={locale} />
+      <PublicHeader locale={locale} path="/schedule" />
       <main className="catalog-page">
         <div className="catalog-title">
           <p>{copy.eyebrow}</p>
