@@ -19,6 +19,14 @@ describe("localized catalog pages", () => {
     expect(
       screen.getByRole("link", { name: "絞り込みをリセット" }),
     ).toHaveAttribute("href", "/ja/browse");
+    expect(screen.getByRole("link", { name: "EN" })).toHaveAttribute(
+      "href",
+      "/en/browse",
+    );
+    expect(screen.getByRole("link", { name: "JA" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("localizes schedule labels and title metadata", async () => {

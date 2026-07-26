@@ -12,7 +12,7 @@ export async function generateMetadata({
   if (!isLocale(locale)) return {};
   const copy = messages[locale].schedule;
   return {
-    title: `${copy.title} | AniVerse`,
+    title: copy.title,
     description: copy.copy,
     alternates: {
       languages: { en: "/en/schedule", ja: "/ja/schedule" },

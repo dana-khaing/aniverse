@@ -161,7 +161,13 @@ export async function LocalizedBrowsePage({
         </div>
         <section className="catalog-grid">
           {results.map((title) => (
-            <TitleCard key={title.slug} title={title} />
+            <TitleCard
+              key={title.slug}
+              title={{
+                ...title,
+                name: locale === "ja" ? title.nativeName : title.name,
+              }}
+            />
           ))}
         </section>
         {results.length === 0 && (
