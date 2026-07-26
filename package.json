@@ -14,6 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:chromium": "playwright test --project=chromium-desktop --project=chromium-mobile",
+    "test:e2e:matrix": "playwright test",
     "backup:validate": "node scripts/validate-backup.mjs",
     "push:keys": "node scripts/generate-vapid.mjs"
   },
@@ -52,5 +54,6 @@
     "typescript": "^5",
     "vite": "6.1.0",
     "vitest": "^3.2.4"
-  }
+  },
+  "packageManager": "pnpm@8.15.1"
 }

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -9,14 +9,17 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL, trace: "on-first-retry" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["iPhone 13"] } },
+    { name: "chromium-desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox-desktop", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit-desktop", use: { ...devices["Desktop Safari"] } },
+    { name: "chromium-mobile", use: { ...devices["Pixel 7"] } },
+    { name: "webkit-mobile", use: { ...devices["iPhone 13"] } },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "pnpm dev",
-        url: "http://127.0.0.1:3000",
+        command: "pnpm exec next dev --webpack",
+        url: "http://localhost:3000",
         reuseExistingServer: !process.env.CI,
       },
 });

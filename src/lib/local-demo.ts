@@ -4,13 +4,20 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { LibrarySnapshot } from "@/lib/library";
 
 const DEMO_EVENT = "aniverse:demo-change";
+const DEMO_CHANNEL = "aniverse:demo";
 
 function subscribe(onStoreChange: () => void) {
+  const channel =
+    typeof BroadcastChannel === "undefined"
+      ? undefined
+      : new BroadcastChannel(DEMO_CHANNEL);
   window.addEventListener("storage", onStoreChange);
   window.addEventListener(DEMO_EVENT, onStoreChange);
+  channel?.addEventListener("message", onStoreChange);
   return () => {
     window.removeEventListener("storage", onStoreChange);
     window.removeEventListener(DEMO_EVENT, onStoreChange);
+    channel?.close();
   };
 }
 
@@ -33,6 +40,11 @@ export function useLocalDemoState<T>(key: string, initialValue: T) {
         : next;
       window.localStorage.setItem(key, JSON.stringify(resolved));
       window.dispatchEvent(new Event(DEMO_EVENT));
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel(DEMO_CHANNEL);
+        channel.postMessage({ key });
+        channel.close();
+      }
     },
     [initialJson, key],
   );
