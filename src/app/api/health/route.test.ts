@@ -6,7 +6,8 @@ describe("health diagnostics", () => {
     const response = GET();
     const payload = await response.json();
 
-    expect(payload.status).toBe("degraded");
+    expect(payload.status).toBe("ok");
+    expect(payload.readiness).toBe("incomplete");
     expect(payload.service).toBe("aniverse");
     expect(payload.integrations).toEqual({
       supabase: "missing",
