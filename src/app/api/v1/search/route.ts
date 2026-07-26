@@ -1,3 +1,35 @@
 import { searchCatalog } from "@/lib/catalog-repository";
+import { publicCatalogHeaders } from "@/lib/delivery-policy";
 import { consumeRateLimit } from "@/lib/security";
-export async function GET(request:Request){const url=new URL(request.url);const key=request.headers.get("x-forwarded-for")??"local";if(!consumeRateLimit(`search:${key}`))return Response.json({error:"Too many requests"},{status:429,headers:{"Retry-After":"2"}});const q=url.searchParams.get("q")??"";const results=await searchCatalog(q);return Response.json({data:results.slice(0,8).map(({slug,name,nativeName,genre,year,studio,tone})=>({slug,name,nativeName,genre,year,studio,tone})),meta:{query:q}})}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const key = request.headers.get("x-forwarded-for") ?? "local";
+  if (!consumeRateLimit(`search:${key}`))
+    return Response.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": "2", "cache-control": "private, no-store" },
+      },
+    );
+  const q = url.searchParams.get("q") ?? "";
+  const results = await searchCatalog(q);
+  return Response.json(
+    {
+      data: results
+        .slice(0, 8)
+        .map(({ slug, name, nativeName, genre, year, studio, tone }) => ({
+          slug,
+          name,
+          nativeName,
+          genre,
+          year,
+          studio,
+          tone,
+        })),
+      meta: { query: q },
+    },
+    { headers: publicCatalogHeaders },
+  );
+}
