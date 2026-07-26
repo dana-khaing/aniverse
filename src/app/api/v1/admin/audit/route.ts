@@ -1,28 +1,10 @@
 import { auditFilterSchema, auditSummary } from "@/lib/audit-history";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
-
-async function staff() {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: role } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .in("role", ["moderator", "admin"])
-    .limit(1)
-    .maybeSingle();
-  return role ? user : null;
-}
+import { authorizeStaff } from "@/lib/supabase/authorization";
 
 export async function GET(request: Request) {
-  if (!(await staff()))
-    return Response.json({ error: "Staff access required" }, { status: 403 });
+  const access = await authorizeStaff();
+  if (!access.ok) return access.response;
   const url = new URL(request.url);
   const parsed = auditFilterSchema.safeParse({
     action: url.searchParams.get("action") || undefined,

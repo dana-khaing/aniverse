@@ -1,27 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { authorizeStaff } from "@/lib/supabase/authorization";
 import { moderationActionSchema } from "@/lib/moderation";
-async function staff() {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: role } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .in("role", ["moderator", "admin"])
-    .limit(1)
-    .maybeSingle();
-  return role ? user : null;
-}
 export async function GET() {
-  const user = await staff();
-  if (!user)
-    return Response.json({ error: "Staff access required" }, { status: 403 });
+  const access = await authorizeStaff();
+  if (!access.ok) return access.response;
   const admin = getAdminClient();
   const [
     { data: reports },
@@ -98,9 +80,9 @@ export async function GET() {
   );
 }
 export async function PATCH(request: Request) {
-  const user = await staff();
-  if (!user)
-    return Response.json({ error: "Staff access required" }, { status: 403 });
+  const access = await authorizeStaff();
+  if (!access.ok) return access.response;
+  const user = access.user;
   const parsed = moderationActionSchema.safeParse(
     await request.json().catch(() => null),
   );
