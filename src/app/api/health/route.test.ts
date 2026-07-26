@@ -7,12 +7,16 @@ describe("health diagnostics", () => {
     const payload = await response.json();
 
     expect(payload.status).toBe("ok");
+    expect(payload.readiness).toBe("incomplete");
     expect(payload.service).toBe("aniverse");
     expect(payload.integrations).toEqual({
-      supabase: false,
-      resend: false,
-      sentry: false,
-      mux: false,
+      supabase: "missing",
+      mux: "missing",
+      resend: "missing",
+      stripe: "missing",
+      sentry: "missing",
+      vapid: "missing",
+      vercel: "missing",
     });
     expect(JSON.stringify(payload)).not.toContain("TOKEN");
   });
