@@ -26,6 +26,8 @@
     "verify:providers": "node scripts/verify-provider-config.mjs",
     "verify:providers:live": "node scripts/verify-provider-config.mjs --probe",
     "backup:validate": "node scripts/validate-backup.mjs",
+    "backup:drill": "node scripts/drill-account-backup.mjs",
+    "backup:drill:database": "node scripts/drill-database-restore.mjs",
     "push:keys": "node scripts/generate-vapid.mjs"
   },
   "dependencies": {

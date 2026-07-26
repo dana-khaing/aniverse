@@ -1,0 +1,29 @@
+name: Backup recovery drill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "25 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  account-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm backup:drill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: account-backup-drill-${{ github.run_id }}
+          path: .artifacts/account-backup-drill.json
+          retention-days: 90
