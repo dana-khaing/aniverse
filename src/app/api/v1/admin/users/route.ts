@@ -1,30 +1,10 @@
 import { userAccessActionSchema, userSearchSchema } from "@/lib/admin-users";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
-
-async function administrator() {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: role } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-  return role ? user : null;
-}
+import { authorizeAdministrator } from "@/lib/supabase/authorization";
 
 export async function GET(request: Request) {
-  if (!(await administrator()))
-    return Response.json(
-      { error: "Administrator access required" },
-      { status: 403 },
-    );
+  const access = await authorizeAdministrator();
+  if (!access.ok) return access.response;
   const url = new URL(request.url);
   const parsed = userSearchSchema.safeParse({
     query: url.searchParams.get("query") ?? "",
@@ -117,12 +97,9 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const actor = await administrator();
-  if (!actor)
-    return Response.json(
-      { error: "Administrator access required" },
-      { status: 403 },
-    );
+  const access = await authorizeAdministrator();
+  if (!access.ok) return access.response;
+  const actor = access.user;
   const parsed = userAccessActionSchema.safeParse(
     await request.json().catch(() => null),
   );

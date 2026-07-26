@@ -1,36 +1,15 @@
 import { z } from "zod";
 import { creatorSlug } from "@/lib/creator-applications";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { authorizeAdministrator } from "@/lib/supabase/authorization";
 const reviewSchema = z.object({
   id: z.uuid(),
   decision: z.enum(["approved", "rejected"]),
   notes: z.string().trim().max(1000).default(""),
 });
-async function administrator() {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY)
-    return null;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: role } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-  return role ? user : null;
-}
 export async function GET() {
-  const reviewer = await administrator();
-  if (!reviewer)
-    return Response.json(
-      { error: "Administrator access required" },
-      { status: 403 },
-    );
+  const access = await authorizeAdministrator();
+  if (!access.ok) return access.response;
   const admin = getAdminClient();
   const { data, error } = await admin
     .from("creator_applications")
@@ -62,12 +41,9 @@ export async function GET() {
   );
 }
 export async function PATCH(request: Request) {
-  const reviewer = await administrator();
-  if (!reviewer)
-    return Response.json(
-      { error: "Administrator access required" },
-      { status: 403 },
-    );
+  const access = await authorizeAdministrator();
+  if (!access.ok) return access.response;
+  const reviewer = access.user;
   const parsed = reviewSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json({ error: "Invalid review decision" }, { status: 400 });
