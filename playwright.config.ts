@@ -9,13 +9,16 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL, trace: "on-first-retry" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["iPhone 13"] } },
+    { name: "chromium-desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox-desktop", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit-desktop", use: { ...devices["Desktop Safari"] } },
+    { name: "chromium-mobile", use: { ...devices["Pixel 7"] } },
+    { name: "webkit-mobile", use: { ...devices["iPhone 13"] } },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "pnpm dev",
+        command: "pnpm dev -- --webpack",
         url: "http://127.0.0.1:3000",
         reuseExistingServer: !process.env.CI,
       },
