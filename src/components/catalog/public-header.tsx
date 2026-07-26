@@ -1,4 +1,29 @@
 import Link from "next/link";
-import { messages,type Locale } from "@/lib/i18n";
-import { Brand, HeaderActions, MobileDock } from "@/components/catalog/site-navigation";
-export function PublicHeader({locale="en"}:{locale?:Locale}){const copy=messages[locale];const prefix=`/${locale}`;return <><header className="catalog-header"><Brand href={prefix}/><nav aria-label="Primary navigation"><Link href={prefix}>{copy.home}</Link><Link href={`${prefix}/browse`}>{copy.browse}</Link><Link href="/schedule">{copy.schedule}</Link><Link href="/charts/seasonal">Charts</Link><Link href="/community">{copy.community}</Link></nav><HeaderActions compact/></header><MobileDock/></>}
+import { localePath, messages, type Locale } from "@/lib/i18n";
+import {
+  Brand,
+  HeaderActions,
+  MobileDock,
+} from "@/components/catalog/site-navigation";
+
+export function PublicHeader({ locale = "en" }: { locale?: Locale }) {
+  const copy = messages[locale];
+  return (
+    <>
+      <header className="catalog-header">
+        <Brand href={localePath(locale)} />
+        <nav aria-label="Primary navigation">
+          <Link href={localePath(locale)}>{copy.nav.home}</Link>
+          <Link href={localePath(locale, "/browse")}>{copy.nav.browse}</Link>
+          <Link href={localePath(locale, "/schedule")}>
+            {copy.nav.schedule}
+          </Link>
+          <Link href="/charts/seasonal">{copy.nav.charts}</Link>
+          <Link href="/community">{copy.nav.community}</Link>
+        </nav>
+        <HeaderActions compact locale={locale} />
+      </header>
+      <MobileDock locale={locale} />
+    </>
+  );
+}
