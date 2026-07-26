@@ -17,6 +17,7 @@
     "test:e2e:chromium": "playwright test --project=chromium-desktop --project=chromium-mobile",
     "test:e2e:matrix": "playwright test",
     "test:rls:audit": "node scripts/audit-rls-migrations.mjs",
+    "test:security:service-role": "node scripts/audit-service-role-boundaries.mjs",
     "test:rls:local": "supabase test db",
     "verify:rls:live": "node scripts/verify-supabase-rls.mjs",
     "verify:providers": "node scripts/verify-provider-config.mjs",
