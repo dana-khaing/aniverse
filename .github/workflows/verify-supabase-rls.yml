@@ -1,0 +1,33 @@
+name: Verify live Supabase RLS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-rls-verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:rls:audit
+      - name: Verify isolation with two real accounts
+        run: pnpm verify:rls:live
+        env:
+          SUPABASE_URL: ${{ secrets.ANIVERSE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ANIVERSE_SUPABASE_PUBLISHABLE_KEY }}
+          ANIVERSE_RLS_USER_A_EMAIL: ${{ secrets.ANIVERSE_RLS_USER_A_EMAIL }}
+          ANIVERSE_RLS_USER_A_PASSWORD: ${{ secrets.ANIVERSE_RLS_USER_A_PASSWORD }}
+          ANIVERSE_RLS_USER_B_EMAIL: ${{ secrets.ANIVERSE_RLS_USER_B_EMAIL }}
+          ANIVERSE_RLS_USER_B_PASSWORD: ${{ secrets.ANIVERSE_RLS_USER_B_PASSWORD }}
