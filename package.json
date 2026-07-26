@@ -20,6 +20,7 @@
     "test:security:service-role": "node scripts/audit-service-role-boundaries.mjs",
     "test:indexes": "node scripts/audit-production-indexes.mjs",
     "load:test": "node scripts/load-test.mjs",
+    "verify:cdn": "node scripts/verify-cdn-delivery.mjs",
     "test:rls:local": "supabase test db",
     "verify:rls:live": "node scripts/verify-supabase-rls.mjs",
     "verify:providers": "node scripts/verify-provider-config.mjs",

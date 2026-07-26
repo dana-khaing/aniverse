@@ -1,4 +1,5 @@
 import { signedPlaybackUrl } from "@/lib/mux";
+import { privatePlaybackHeaders } from "@/lib/delivery-policy";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
@@ -95,6 +96,6 @@ export async function GET(
       audioTracks,
       expiresIn: 3600,
     },
-    { headers: { "cache-control": "private, no-store" } },
+    { headers: privatePlaybackHeaders },
   );
 }
