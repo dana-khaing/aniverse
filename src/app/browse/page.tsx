@@ -1,15 +1,12 @@
-import { Filter,RotateCcw } from "lucide-react";
-import Link from "next/link";
-import { PublicHeader } from "@/components/catalog/public-header";
-import { SearchAutocomplete } from "@/components/catalog/search-autocomplete";
-import { TitleCard } from "@/components/catalog/title-card";
-import { filterCatalogRepository, listCatalog } from "@/lib/catalog-repository";
-import type { CatalogTitle } from "@/lib/catalog";
+import {
+  LocalizedBrowsePage,
+  type BrowseParams,
+} from "@/components/catalog/localized-browse-page";
 
-type Params={q?:string;genre?:string;year?:string;format?:CatalogTitle["format"]|"all";status?:string;studio?:string;score?:string;sort?:"popular"|"score"|"newest"|"title"};
-export default async function BrowsePage({searchParams}:{searchParams:Promise<Params>}){
-  const p=await searchParams; const all=await listCatalog();
-  const results=await filterCatalogRepository({query:p.q,genre:p.genre,year:p.year?Number(p.year):undefined,format:p.format,status:p.status,studio:p.studio,minScore:p.score?Number(p.score):undefined,sort:p.sort});
-  const studios=[...new Set(all.map((title)=>title.studio))].sort(); const years=[...new Set(all.map((title)=>title.year))].sort((a,b)=>b-a);
-  return <><PublicHeader/><main className="catalog-page"><div className="catalog-title"><p>DISCOVER YOUR NEXT STORY</p><h1>Browse anime</h1><span>Search every title, season, studio, and genre.</span></div><form className="browse-tools advanced"><SearchAutocomplete defaultValue={p.q}/><select name="genre" defaultValue={p.genre??"all"} aria-label="Genre"><option value="all">All genres</option>{["Fantasy","Action","Drama","Romance","Sci-fi","Mystery","Supernatural","Adventure"].map(g=><option key={g}>{g}</option>)}</select><select name="year" defaultValue={p.year??""} aria-label="Year"><option value="">Any year</option>{years.map(year=><option key={year}>{year}</option>)}</select><select name="format" defaultValue={p.format??"all"} aria-label="Format"><option value="all">All formats</option><option>TV</option><option>Movie</option></select><select name="status" defaultValue={p.status??"all"} aria-label="Status"><option value="all">Any status</option><option>Airing</option><option>Finished</option></select><select name="studio" defaultValue={p.studio??"all"} aria-label="Studio"><option value="all">All studios</option>{studios.map(studio=><option key={studio}>{studio}</option>)}</select><select name="score" defaultValue={p.score??""} aria-label="Minimum score"><option value="">Any score</option><option value="8.5">8.5+</option><option value="9">9.0+</option></select><select name="sort" defaultValue={p.sort??"score"} aria-label="Sort"><option value="score">Top rated</option><option value="newest">Newest</option><option value="title">A–Z</option></select><button><Filter size={16}/>Apply</button><Link className="reset-filter" href="/browse" aria-label="Reset filters"><RotateCcw size={16}/></Link></form><div className="result-head"><span>{results.length} titles</span><span>Filtered discovery</span></div><section className="catalog-grid">{results.map(t=><TitleCard key={t.slug} title={t}/>)}</section>{results.length===0&&<div className="empty-catalog"><h2>No universes found</h2><p>Try fewer filters or reset your search.</p></div>}</main></>;
+export default function BrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<BrowseParams>;
+}) {
+  return <LocalizedBrowsePage locale="en" searchParams={searchParams} />;
 }

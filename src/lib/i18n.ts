@@ -1,2 +1,256 @@
-export const locales=["en","ja"] as const;export type Locale=typeof locales[number];
-export const messages={en:{home:"Home",browse:"Browse",schedule:"Schedule",community:"Community",eyebrow:"STORIES BEYOND THE STARS",title:"Discover your next universe",copy:"Original animation, independent creators, and communities built around stories worth sharing.",cta:"Browse anime"},ja:{home:"ホーム",browse:"作品を探す",schedule:"配信予定",community:"コミュニティ",eyebrow:"星を越える物語",title:"次の世界を見つけよう",copy:"オリジナルアニメ、独立系クリエイター、そして物語を愛するコミュニティ。",cta:"アニメを探す"}} as const;
+export const locales = ["en", "ja"] as const;
+export type Locale = (typeof locales)[number];
+
+const en = {
+  localeName: "English",
+  language: "Language",
+  nav: {
+    home: "Home",
+    browse: "Browse",
+    schedule: "Schedule",
+    charts: "Charts",
+    community: "Community",
+    library: "Library",
+    search: "Search",
+    notifications: "Notifications",
+    account: "Account",
+    mySpace: "My space",
+  },
+  home: {
+    eyebrow: "STORIES BEYOND THE STARS",
+    title: "Discover your next universe",
+    copy: "Original animation, independent creators, and communities built around stories worth sharing.",
+    cta: "Browse anime",
+    trending: "#1 TRENDING THIS WEEK",
+    watchNow: "Watch now",
+    viewDetails: "View details",
+    findAnime: "Find anime",
+    searchPlaceholder: "Search anime, genres, creators…",
+    trendingSearch: "Trending",
+    explore: "Explore",
+    allGenres: "All genres",
+    watchingEyebrow: "WHAT EVERYONE IS WATCHING",
+    trendingNow: "Trending now",
+    viewAll: "View all",
+    studioEyebrow: "FRESH FROM THE STUDIOS",
+    latestEpisodes: "Latest episodes",
+    thisWeek: "THIS WEEK",
+    releaseSchedule: "Release schedule",
+    fullCalendar: "Full calendar",
+    newEpisode: "New episode",
+    chartEyebrow: "THE COMMUNITY CHART",
+    topTen: "Top 10 this week",
+    seeChart: "See chart",
+    creatorEyebrow: "CREATOR SPOTLIGHT",
+    creatorTitle: "Stories made to be remembered.",
+    creatorCopy:
+      "Meet independent studios building the next generation of animation.",
+    exploreCreators: "Explore creators",
+    bannerEyebrow: "YOUR NEXT OBSESSION IS WAITING",
+    bannerTitle: "Explore every universe",
+    bannerCopy:
+      "Browse curated collections across fantasy, romance, action, sci-fi and more.",
+    browseAll: "Browse all anime",
+  },
+  browse: {
+    eyebrow: "DISCOVER YOUR NEXT STORY",
+    title: "Browse anime",
+    copy: "Search every title, season, studio, and genre.",
+    genre: "Genre",
+    allGenres: "All genres",
+    year: "Year",
+    anyYear: "Any year",
+    format: "Format",
+    allFormats: "All formats",
+    status: "Status",
+    anyStatus: "Any status",
+    studio: "Studio",
+    allStudios: "All studios",
+    minimumScore: "Minimum score",
+    anyScore: "Any score",
+    sort: "Sort",
+    topRated: "Top rated",
+    newest: "Newest",
+    alphabetical: "A–Z",
+    apply: "Apply",
+    reset: "Reset filters",
+    titles: "titles",
+    filtered: "Filtered discovery",
+    emptyTitle: "No universes found",
+    emptyCopy: "Try fewer filters or reset your search.",
+  },
+  schedule: {
+    eyebrow: "NEVER MISS AN EPISODE",
+    title: "Release schedule",
+    copy: "Times shown in your local timezone.",
+    episode: "Episode",
+    month: "JUL",
+    days: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ],
+  },
+  genres: {
+    Action: "Action",
+    Romance: "Romance",
+    Fantasy: "Fantasy",
+    "Sci-fi": "Sci-fi",
+    Mystery: "Mystery",
+    Comedy: "Comedy",
+    Drama: "Drama",
+    Supernatural: "Supernatural",
+    Adventure: "Adventure",
+  },
+  footer: {
+    tagline: "Stories worth discovering. Creators worth supporting.",
+    about: "About",
+    terms: "Terms",
+    privacy: "Privacy",
+    takedown: "Takedown",
+  },
+} as const;
+
+type DeepWiden<T> = T extends string
+  ? string
+  : T extends readonly (infer Item)[]
+    ? readonly DeepWiden<Item>[]
+    : T extends object
+      ? { readonly [Key in keyof T]: DeepWiden<T[Key]> }
+      : T;
+export type Dictionary = DeepWiden<typeof en>;
+
+const ja: Dictionary = {
+  localeName: "日本語",
+  language: "言語",
+  nav: {
+    home: "ホーム",
+    browse: "作品を探す",
+    schedule: "配信予定",
+    charts: "ランキング",
+    community: "コミュニティ",
+    library: "ライブラリ",
+    search: "検索",
+    notifications: "通知",
+    account: "アカウント",
+    mySpace: "マイスペース",
+  },
+  home: {
+    eyebrow: "星を越える物語",
+    title: "次の世界を見つけよう",
+    copy: "オリジナルアニメ、独立系クリエイター、そして心に残る物語を囲むコミュニティ。",
+    cta: "アニメを探す",
+    trending: "今週のトレンド第1位",
+    watchNow: "今すぐ見る",
+    viewDetails: "詳細を見る",
+    findAnime: "アニメを検索",
+    searchPlaceholder: "作品、ジャンル、クリエイターを検索…",
+    trendingSearch: "話題",
+    explore: "ジャンル",
+    allGenres: "すべてのジャンル",
+    watchingEyebrow: "みんなが見ている作品",
+    trendingNow: "現在のトレンド",
+    viewAll: "すべて見る",
+    studioEyebrow: "スタジオからの新着",
+    latestEpisodes: "最新エピソード",
+    thisWeek: "今週",
+    releaseSchedule: "配信スケジュール",
+    fullCalendar: "カレンダーを見る",
+    newEpisode: "新しいエピソード",
+    chartEyebrow: "コミュニティランキング",
+    topTen: "今週のトップ10",
+    seeChart: "ランキングを見る",
+    creatorEyebrow: "注目のクリエイター",
+    creatorTitle: "記憶に残る物語を。",
+    creatorCopy: "次世代のアニメーションを生み出す独立系スタジオを紹介します。",
+    exploreCreators: "クリエイターを見る",
+    bannerEyebrow: "次のお気に入りが待っています",
+    bannerTitle: "すべての世界を旅しよう",
+    bannerCopy:
+      "ファンタジー、ロマンス、アクション、SFなど、厳選コレクションを楽しめます。",
+    browseAll: "すべてのアニメを見る",
+  },
+  browse: {
+    eyebrow: "次の物語を見つけよう",
+    title: "アニメを探す",
+    copy: "作品、シーズン、スタジオ、ジャンルから検索できます。",
+    genre: "ジャンル",
+    allGenres: "すべてのジャンル",
+    year: "年",
+    anyYear: "すべての年",
+    format: "形式",
+    allFormats: "すべての形式",
+    status: "配信状況",
+    anyStatus: "すべての状況",
+    studio: "スタジオ",
+    allStudios: "すべてのスタジオ",
+    minimumScore: "最低評価",
+    anyScore: "すべての評価",
+    sort: "並び順",
+    topRated: "評価順",
+    newest: "新着順",
+    alphabetical: "五十音順",
+    apply: "適用",
+    reset: "絞り込みをリセット",
+    titles: "作品",
+    filtered: "絞り込み結果",
+    emptyTitle: "作品が見つかりません",
+    emptyCopy: "条件を減らすか、検索をリセットしてください。",
+  },
+  schedule: {
+    eyebrow: "新着を見逃さない",
+    title: "配信スケジュール",
+    copy: "時刻はお住まいの地域の時間で表示されます。",
+    episode: "第",
+    month: "7月",
+    days: [
+      "月曜日",
+      "火曜日",
+      "水曜日",
+      "木曜日",
+      "金曜日",
+      "土曜日",
+      "日曜日",
+    ],
+  },
+  genres: {
+    Action: "アクション",
+    Romance: "ロマンス",
+    Fantasy: "ファンタジー",
+    "Sci-fi": "SF",
+    Mystery: "ミステリー",
+    Comedy: "コメディ",
+    Drama: "ドラマ",
+    Supernatural: "超自然",
+    Adventure: "冒険",
+  },
+  footer: {
+    tagline: "見つける価値のある物語。応援する価値のあるクリエイター。",
+    about: "AniVerseについて",
+    terms: "利用規約",
+    privacy: "プライバシー",
+    takedown: "削除申請",
+  },
+};
+
+export const messages: Record<Locale, Dictionary> = { en, ja };
+
+export function isLocale(value: string): value is Locale {
+  return locales.includes(value as Locale);
+}
+
+export function localePath(locale: Locale, path = "/") {
+  const normalized = path === "/" ? "" : `/${path.replace(/^\/+/, "")}`;
+  return `/${locale}${normalized}`;
+}
+
+export function localizeGenre(
+  locale: Locale,
+  genre: keyof Dictionary["genres"],
+) {
+  return messages[locale].genres[genre];
+}
