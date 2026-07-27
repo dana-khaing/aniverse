@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LocalDataProvider } from "@/components/providers/local-data-provider";
 import { PwaProvider } from "@/components/providers/pwa-provider";
 import "./globals.css";
+import "./legal.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

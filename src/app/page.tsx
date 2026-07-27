@@ -118,7 +118,7 @@ export default function Home() {
         </div>
       </main>
 
-      <footer><Brand /><p>Stories worth discovering. Creators worth supporting.</p><div><Link href="/about">About</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/takedown">Takedown</Link></div><span>© 2026 AniVerse</span></footer>
+      <footer><Brand /><p>Stories worth discovering. Creators worth supporting.</p><div><Link href="/about">About</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/copyright">Copyright</Link><Link href="/takedown">DMCA</Link></div><span>© 2026 AniVerse</span></footer>
       <MobileDock />
     </div>
   );
