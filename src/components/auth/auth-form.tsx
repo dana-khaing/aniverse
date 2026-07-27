@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ArrowRight, Globe2, LoaderCircle, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { legalVersion } from "@/lib/legal";
 
 type Mode = "sign-in" | "sign-up" | "recover";
 
@@ -20,7 +21,19 @@ export function AuthForm({ mode }: { mode: Mode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error; window.location.assign("/account");
       } else if (mode === "sign-up") {
-        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              display_name: String(data.get("displayName") ?? ""),
+              legal_consent: true,
+              terms_version: legalVersion,
+              privacy_version: legalVersion,
+            },
+          },
+        });
         if (error) throw error; setMessage("Check your inbox to verify your AniVerse account.");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/callback?next=/account/security` });
@@ -39,12 +52,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const title = mode === "sign-in" ? "Welcome back" : mode === "sign-up" ? "Join the universe" : "Reset your password";
   const intro = mode === "sign-in" ? "Continue your story where you left off." : mode === "sign-up" ? "Discover stories and support independent creators." : "We’ll send a secure recovery link to your inbox.";
   return <div className="auth-card"><div className="auth-logo"><span className="brand-orbit"><span /></span></div><p className="auth-kicker">ANIVERSE ACCOUNT</p><h1>{title}</h1><p className="auth-intro">{intro}</p>
-    {mode !== "recover" && <button className="oauth-button" onClick={google} disabled={loading}><Globe2 size={17}/> Continue with Google</button>}
-    {mode !== "recover" && <div className="auth-divider"><span/>or continue with email<span/></div>}
+    {mode === "sign-in" && <button className="oauth-button" onClick={google} disabled={loading}><Globe2 size={17}/> Continue with Google</button>}
+    {mode === "sign-in" && <div className="auth-divider"><span/>or continue with email<span/></div>}
     <form onSubmit={submit} className="auth-form">
       {mode === "sign-up" && <label><span>Display name</span><div><UserRound size={16}/><input name="displayName" placeholder="How should we call you?" /></div></label>}
       <label><span>Email address</span><div><Mail size={16}/><input required type="email" name="email" autoComplete="email" placeholder="you@example.com" /></div></label>
       {mode !== "recover" && <label><span>Password</span><div><LockKeyhole size={16}/><input required minLength={8} type="password" name="password" autoComplete={mode === "sign-in" ? "current-password" : "new-password"} placeholder="At least 8 characters" /></div></label>}
+      {mode === "sign-up" && <label className="auth-consent"><input required type="checkbox" name="legalConsent"/><span>I agree to the <Link href="/terms" target="_blank">Terms of Service</Link> and acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>.</span></label>}
       {mode === "sign-in" && <Link className="forgot-link" href="/recover">Forgot password?</Link>}
       <button className="auth-submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18}/> : <>{mode === "sign-in" ? "Sign in" : mode === "sign-up" ? "Create account" : "Send recovery link"}<ArrowRight size={17}/></>}</button>
     </form>
