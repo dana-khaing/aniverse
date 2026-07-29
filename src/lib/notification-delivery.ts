@@ -12,7 +12,8 @@ import { getAdminClient } from "@/lib/supabase/admin";
 
 type NotificationEvent = {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  recipient_email?: string | null;
   category: NotificationCategory;
   title: string;
   body: string;
@@ -21,6 +22,8 @@ type NotificationEvent = {
 };
 
 async function sendPush(event: NotificationEvent) {
+  if (!event.user_id)
+    return { status: "skipped" as const, detail: "Email-only recipient" };
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT;
@@ -79,13 +82,15 @@ export async function deliverNotificationEvent(
   origin: string,
 ) {
   const admin = getAdminClient();
-  const [{ data: preferences }, { data: authUser }] = await Promise.all([
-    admin
+  const [{ data: preferences }, authResult] = await Promise.all([
+    event.user_id ? admin
       .from("notification_preferences")
       .select("release_email,community_email,creator_email,push_enabled")
       .eq("user_id", event.user_id)
-      .single(),
-    admin.auth.admin.getUserById(event.user_id),
+      .single() : Promise.resolve({ data: null }),
+    event.user_id
+      ? admin.auth.admin.getUserById(event.user_id).then(({ data }) => data)
+      : Promise.resolve({ user: null }),
   ]);
   const channels = deliveryChannels(
     event.category,
@@ -102,10 +107,11 @@ export async function deliverNotificationEvent(
     provider_id?: string;
     detail?: string;
   }> = [];
-  if (channels.email && authUser.user?.email) {
+  const recipient = event.recipient_email ?? authResult.user?.email;
+  if (channels.email && recipient) {
     try {
       const result = await sendTransactionalEmail({
-        to: authUser.user.email,
+        to: recipient,
         subject: event.title,
         html: notificationEmailHtml({ ...event, origin }),
         idempotencyKey: `notification-${event.id}-email`,

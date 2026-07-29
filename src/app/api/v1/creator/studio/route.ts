@@ -46,8 +46,10 @@ export async function POST(request: Request) {
     if (membership.role !== "owner") return Response.json({ error: "Owner access required" }, { status: 403 });
     if (user.email?.toLowerCase() === memberAction.email.toLowerCase()) return Response.json({ error: "You are already the team owner" }, { status: 409 });
     const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
-    const { data: invitation, error } = await admin.from("creator_team_invitations").upsert({ team_id: membership.team_id, email: memberAction.email.toLowerCase(), role: parsed.data.role, invited_by: user.id, expires_at: expiresAt, accepted_at: null }, { onConflict: "team_id,email" }).select("email,role,expires_at").single();
+    const { data: invitation, error } = await admin.from("creator_team_invitations").upsert({ team_id: membership.team_id, email: memberAction.email.toLowerCase(), role: parsed.data.role, invited_by: user.id, expires_at: expiresAt, accepted_at: null }, { onConflict: "team_id,email" }).select("id,email,role,expires_at,creator_teams(name)").single();
     if (error) return Response.json({ error: "Team invitation could not be created" }, { status: 500 });
+    const teamName=(invitation.creator_teams as unknown as {name:string}).name;
+    await admin.from("notification_events").insert({recipient_email:invitation.email,category:"creator",event_key:`creator-invitation:${invitation.id}:${invitation.expires_at}`,title:`Invitation to join ${teamName}`,body:`You were invited as ${invitation.role}. Sign in with this email to accept the invitation.`,href:"/creator"});
     return Response.json({ invitation: { email: invitation.email, role: invitation.role, expiresAt: invitation.expires_at } }, { status: 201 });
   }
   if (parsed.data.type === "create-title") {
