@@ -6,6 +6,7 @@ import {
   History,
   Settings,
   ShieldCheck,
+  LifeBuoy,
   UserRound,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +47,7 @@ export default async function AccountPage() {
     { href: "/history", label: "Watch history", icon: History },
     { href: "/my-list", label: "My lists", icon: Heart },
     { href: "/account/settings", label: "Account settings", icon: Settings },
+    { href: "/support", label: "Support requests", icon: LifeBuoy },
   ];
   return (
     <main className="account-page">

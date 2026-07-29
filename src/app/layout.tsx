@@ -6,6 +6,7 @@ import { LocalDataProvider } from "@/components/providers/local-data-provider";
 import { PwaProvider } from "@/components/providers/pwa-provider";
 import "./globals.css";
 import "./legal.css";
+import "./support.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

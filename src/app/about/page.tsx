@@ -1,0 +1,5 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Brand } from "@/components/catalog/site-navigation";
+export const metadata:Metadata={title:"About"};
+export default function AboutPage(){return <main className="support-page"><nav><Brand/><Link href="/help">Help</Link><Link href="/support">Contact</Link></nav><header><p>ABOUT ANIVERSE</p><h1>Stories beyond the stars.</h1><span>AniVerse is a creator-first home for original and rights-cleared animation, built around discovery, respectful communities, dependable playback, and direct creator support.</span></header><section className="about-values"><article><b>Creator owned</b><p>Publishing controls, team permissions, analytics, rights workflows, and transparent support tools.</p></article><article><b>Viewer centered</b><p>Accessible playback, personal libraries, thoughtful discovery, privacy controls, and synchronized watch parties.</p></article><article><b>Trust by design</b><p>Moderation evidence, appeals, audit history, consent records, secure media, and operational transparency.</p></article></section></main>}
