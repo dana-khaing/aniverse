@@ -21,3 +21,33 @@ export const dmcaRequestSchema = z.object({
   accuracyConfirmed: z.literal(true),
   signature: z.string().trim().min(2).max(120),
 });
+
+export const dmcaAdminActionSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("review"),
+    id: z.string().uuid(),
+    decision: z.enum(["reviewing", "rejected"]),
+    titleId: z.string().uuid().nullable().default(null),
+    notes: z.string().trim().min(10).max(2000),
+  }),
+  z.object({
+    action: z.literal("execute"),
+    id: z.string().uuid(),
+    notes: z.string().trim().min(10).max(2000),
+  }),
+  z.object({
+    action: z.literal("counter"),
+    id: z.string().uuid(),
+    decision: z.enum(["reviewing", "accepted", "rejected"]),
+    notes: z.string().trim().min(10).max(2000),
+  }),
+]);
+
+export const dmcaCounterNoticeSchema = z.object({
+  requestId: z.string().uuid(),
+  contactEmail: z.email().max(320),
+  statement: z.string().trim().min(30).max(5000),
+  goodFaithConfirmed: z.literal(true),
+  jurisdictionConfirmed: z.literal(true),
+  signature: z.string().trim().min(2).max(120),
+});

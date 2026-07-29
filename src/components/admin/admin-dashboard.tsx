@@ -22,6 +22,7 @@ import { EnforcementCenter } from "@/components/admin/enforcement-center";
 import { AuditTimeline } from "@/components/admin/audit-timeline";
 import { AdminUserManager } from "@/components/admin/admin-user-manager";
 import { SupportOperations } from "@/components/admin/support-operations";
+import { DmcaOperations } from "@/components/admin/dmca-operations";
 export function AdminDashboard() {
   const [moderation, setModeration] = useLocalDemoState(
     "aniverse.moderation",
@@ -189,6 +190,7 @@ export function AdminDashboard() {
       </section>
       <EvidenceReview />
       <EnforcementCenter />
+      <DmcaOperations />
       <AuditTimeline />
       <AdminUserManager />
       <SupportOperations />
