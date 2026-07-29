@@ -3,3 +3,4 @@
 body:has(.support-page) .notification-opt-in {
   display: none;
 }
+.support-page>nav .localized-info-nav{display:flex;gap:20px;align-items:center}.support-page>nav .localized-info-nav a{font-size:10px;color:#918a99}.support-page>nav .localized-info-nav a:last-child{color:#c18cff}@media(max-width:700px){.support-page>nav .localized-info-nav{width:100%;justify-content:space-between;gap:8px}.support-page>nav .localized-info-nav a{font-size:8px}}

@@ -25,7 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path ? 0.8 : 1,
   }));
   const localized = locales.flatMap((locale) =>
-    ["", "/browse", "/schedule"].map((path) => ({
+    ["", "/browse", "/schedule", "/about", "/help", "/status", "/support", "/terms", "/privacy", "/copyright", "/takedown"].map((path) => ({
       url: `${base}/${locale}${path}`,
       lastModified: new Date(),
       changeFrequency: "daily" as const,
