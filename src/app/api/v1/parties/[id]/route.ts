@@ -1,6 +1,7 @@
 import { partyActionSchema, canManageParty } from "@/lib/watch-party";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
 
 async function context(id: string) {
   if (!isSupabaseConfigured())
@@ -145,6 +146,14 @@ export async function PATCH(
         { error: "Invitation could not be created" },
         { status: 500 },
       );
+    await getAdminClient().from("notification_events").insert({
+      recipient_email: data.email,
+      category: "creator",
+      event_key: `party-invitation:${data.id}`,
+      title: `Watch-party invitation: ${access.party.name}`,
+      body: `You were invited as ${data.role}. Sign in to join the synchronized watch party.`,
+      href: `/party/${id}`,
+    });
     return Response.json({ invitation: data }, { status: 201 });
   }
   if (action.action === "lifecycle") {
