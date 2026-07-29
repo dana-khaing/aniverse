@@ -49,7 +49,14 @@ export async function POST(request: Request) {
     })
     .select("id,submitted_at")
     .single();
-  return error
-    ? Response.json({ error: "Submission could not be recorded" }, { status: 500 })
-    : Response.json({ request: data }, { status: 201 });
+  if (error)
+    return Response.json(
+      { error: "Submission could not be recorded" },
+      { status: 500 },
+    );
+  await getAdminClient().from("dmca_request_events").insert({
+    request_id: data.id,
+    event_type: "submitted",
+  });
+  return Response.json({ request: data }, { status: 201 });
 }
