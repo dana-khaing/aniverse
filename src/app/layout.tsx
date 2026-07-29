@@ -4,9 +4,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LocalDataProvider } from "@/components/providers/local-data-provider";
 import { PwaProvider } from "@/components/providers/pwa-provider";
+import { LegalConsentGate } from "@/components/legal/legal-consent-lifecycle";
 import "./globals.css";
 import "./legal.css";
 import "./support.css";
+import "./consent.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,7 +42,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <a className="skip-link" href="#main-content">Skip to main content</a>
-        <div id="main-content"><LocalDataProvider>{children}<PwaProvider/></LocalDataProvider></div>
+        <div id="main-content"><LocalDataProvider>{children}<PwaProvider/><LegalConsentGate/></LocalDataProvider></div>
         <Analytics />
         <SpeedInsights />
       </body>
