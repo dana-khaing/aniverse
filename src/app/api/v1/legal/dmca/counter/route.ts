@@ -18,15 +18,43 @@ async function creatorAccess() {
 export async function GET() {
   const access = await creatorAccess();
   if ("response" in access) return access.response;
-  const { data: notices, error } = await access.supabase
-    .from("dmca_counter_notices")
-    .select("id,request_id,statement,status,submitted_at,review_notes")
-    .eq("submitter_id", access.user.id)
-    .order("submitted_at", { ascending: false });
+  const { data: memberships } = await access.supabase
+    .from("creator_team_memberships")
+    .select("team_id")
+    .eq("user_id", access.user.id)
+    .in("role", ["owner", "editor"]);
+  const teamIds = (memberships ?? []).map((item) => item.team_id);
+  const admin = getAdminClient();
+  const { data: titles } = teamIds.length
+    ? await admin.from("titles").select("id,name").in("creator_team_id", teamIds)
+    : { data: [] };
+  const titleIds = (titles ?? []).map((item) => item.id);
+  const [{ data: notices, error }, { data: requests }] = await Promise.all([
+    access.supabase
+      .from("dmca_counter_notices")
+      .select("id,request_id,statement,status,submitted_at,review_notes")
+      .eq("submitter_id", access.user.id)
+      .order("submitted_at", { ascending: false }),
+    titleIds.length
+      ? admin
+          .from("dmca_requests")
+          .select("id,title_id,status,submitted_at,work_description")
+          .in("title_id", titleIds)
+          .in("status", ["reviewing", "actioned"])
+          .order("submitted_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+  ]);
+  const names = new Map((titles ?? []).map((title) => [title.id, title.name]));
   return error
     ? Response.json({ error: "Counter notices could not be loaded" }, { status: 500 })
     : Response.json(
-        { counterNotices: notices ?? [] },
+        {
+          counterNotices: notices ?? [],
+          requests: (requests ?? []).map((item) => ({
+            ...item,
+            titleName: names.get(item.title_id) ?? "Affected title",
+          })),
+        },
         { headers: { "cache-control": "private, no-store" } },
       );
 }

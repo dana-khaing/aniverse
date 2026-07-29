@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/privacy",
     "/copyright",
     "/takedown",
+    "/creator/dmca",
     "/about",
     "/help",
     "/status",
