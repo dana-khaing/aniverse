@@ -6,6 +6,7 @@ export const consentSchema = z.object({
   type: z.enum(["terms", "privacy", "playback_analytics", "marketing"]),
   version: z.string().trim().min(1).max(40),
   granted: z.boolean(),
+  source: z.enum(["account_settings", "version_gate"]).default("account_settings"),
 });
 
 export const dmcaRequestSchema = z.object({

@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { AccountControls } from "@/components/account/account-controls";
 import { CloudContinuity } from "@/components/account/cloud-continuity";
+import { ConsentHistory } from "@/components/legal/legal-consent-lifecycle";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export default async function AccountPage() {
@@ -81,6 +82,7 @@ export default async function AccountPage() {
           ))}
         </div>
         <AccountControls />
+        <ConsentHistory />
         {isSupabaseConfigured() && process.env.BACKUP_ENCRYPTION_KEY && (
           <CloudContinuity />
         )}

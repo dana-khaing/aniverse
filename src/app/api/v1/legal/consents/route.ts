@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       consent_type: parsed.data.type,
       document_version: parsed.data.version,
       granted: parsed.data.granted,
-      source: "account_settings",
+      source: parsed.data.source,
     })
     .select("id,consent_type,document_version,granted,source,recorded_at")
     .single();
