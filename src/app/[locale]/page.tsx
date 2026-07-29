@@ -75,10 +75,10 @@ export default async function LocaleHome({
       <footer lang={locale}>
         <p>{copy.footer.tagline}</p>
         <div>
-          <Link href="/about">{copy.footer.about}</Link>
-          <Link href="/terms">{copy.footer.terms}</Link>
-          <Link href="/privacy">{copy.footer.privacy}</Link>
-          <Link href="/takedown">{copy.footer.takedown}</Link>
+          <Link href={localePath(locale,"about")}>{copy.footer.about}</Link>
+          <Link href={localePath(locale,"terms")}>{copy.footer.terms}</Link>
+          <Link href={localePath(locale,"privacy")}>{copy.footer.privacy}</Link>
+          <Link href={localePath(locale,"takedown")}>{copy.footer.takedown}</Link>
         </div>
         <span>© 2026 AniVerse</span>
       </footer>
