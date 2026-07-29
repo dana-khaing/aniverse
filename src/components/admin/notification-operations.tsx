@@ -1,0 +1,15 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { BellRing, LoaderCircle, RotateCcw } from "lucide-react";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+type Event={id:string;recipient_email:string|null;category:string;title:string;status:string;attempts:number;last_error:string|null;created_at:string;notification_deliveries:Array<{channel:string;status:string;detail:string|null}>};
+const demoEvents:Event[]=[{id:"24fd8712-e874-4fde-820b-9c9dff9ce6f1",recipient_email:"creator@example.com",category:"creator",title:"Invitation to join Northstar Studio",status:"failed",attempts:3,last_error:"Provider timeout",created_at:"2026-07-29T19:00:00Z",notification_deliveries:[{channel:"email",status:"failed",detail:"Provider timeout"},{channel:"push",status:"skipped",detail:"Email-only recipient"}]}];
+export function NotificationOperations(){
+  const cloud=isSupabaseConfigured();const[events,setEvents]=useState<Event[]>(cloud?[]:demoEvents);const[busy,setBusy]=useState(false);const[message,setMessage]=useState("");
+  const load=useCallback(async()=>{if(!cloud)return;setBusy(true);const response=await fetch("/api/v1/admin/notifications",{cache:"no-store"});const data=await response.json().catch(()=>({}))as{events?:Event[];error?:string};if(response.ok)setEvents(data.events??[]);else setMessage(data.error??"Delivery history could not be loaded.");setBusy(false)},[cloud]);
+  useEffect(()=>{const timer=setTimeout(()=>void load(),0);return()=>clearTimeout(timer)},[load]);
+  async function replay(id:string){if(!cloud){setEvents(current=>current.map(item=>item.id===id?{...item,status:"pending",attempts:0,last_error:null}:item));setMessage("Event queued for replay.");return}setBusy(true);const response=await fetch("/api/v1/admin/notifications",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({action:"replay",id})});const data=await response.json().catch(()=>({}))as{error?:string};setMessage(response.ok?"Event queued for replay.":data.error??"Replay failed.");if(response.ok)await load();setBusy(false)}
+  return <section className="moderation-panel notification-operations"><div className="panel-title"><div><p>DELIVERY OPERATIONS</p><h2>Email and push history</h2></div>{busy?<LoaderCircle className="spin"/>:<BellRing/>}</div>{message&&<p role="status">{message}</p>}<div className="delivery-table">{events.map(item=><article key={item.id}><div><b>{item.title}</b><small>{item.recipient_email??item.category} · {new Date(item.created_at).toLocaleString()}</small></div><i className={`delivery-${item.status}`}>{item.status}</i><span>{item.attempts} attempts</span><div>{item.notification_deliveries.map(delivery=><small key={delivery.channel}>{delivery.channel}: {delivery.status}</small>)}</div>{["failed","partial","dead_letter"].includes(item.status)&&<button disabled={busy} onClick={()=>void replay(item.id)}><RotateCcw/>Replay</button>}{item.last_error&&<p>{item.last_error}</p>}</article>)}</div></section>
+}
