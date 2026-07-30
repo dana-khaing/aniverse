@@ -21,6 +21,7 @@ import { TitleAssetManager } from "@/components/creator/title-asset-manager";
 import { TranslationManager } from "@/components/creator/translation-manager";
 import { AudioTrackManager } from "@/components/creator/audio-track-manager";
 import { ReleaseReadiness } from "@/components/creator/release-readiness";
+import { CreatorMediaConsole } from "@/components/creator/creator-media-console";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CreatorStudioWorkspace } from "@/lib/creator-studio";
 import {
@@ -1089,6 +1090,7 @@ export function CreatorWorkspace() {
             }))}
           />
         </section>
+        <CreatorMediaConsole cloud={cloud} />
         <ReleaseReadiness cloud={cloud} />
         <TitleAssetManager cloud={cloud} />
         <TranslationManager cloud={cloud} />
