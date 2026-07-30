@@ -56,4 +56,22 @@ describe("provider readiness", () => {
       result.providers.find((provider) => provider.id === "vercel")?.invalid,
     ).toContain("NEXT_PUBLIC_SITE_URL");
   });
+
+  it("rejects unsafe cross-provider production configuration", () => {
+    const result = evaluateProviderReadiness({
+      ...configured,
+      SUPABASE_SERVICE_ROLE_KEY:
+        configured.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      STRIPE_SECRET_KEY: ["sk", "test", "123456789012345678901234"].join("_"),
+      RESEND_FROM_EMAIL: "AniVerse <onboarding@resend.dev>",
+    });
+    expect(result.status).toBe("incomplete");
+    expect(result.conflicts).toEqual(
+      expect.arrayContaining([
+        "Supabase public and service-role keys must be distinct",
+        "Stripe must use a live-mode key in production",
+        "Resend must use a verified production sender",
+      ]),
+    );
+  });
 });

@@ -117,6 +117,36 @@ export const providerDefinitions = [
   },
 ];
 
+function configurationConflicts(env, { production }) {
+  const conflicts = [];
+  if (
+    present(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) &&
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY === env.SUPABASE_SERVICE_ROLE_KEY
+  )
+    conflicts.push("Supabase public and service-role keys must be distinct");
+  if (
+    production &&
+    present(env.STRIPE_SECRET_KEY) &&
+    !env.STRIPE_SECRET_KEY.startsWith("sk_live_")
+  )
+    conflicts.push("Stripe must use a live-mode key in production");
+  if (
+    production &&
+    present(env.RESEND_FROM_EMAIL) &&
+    /@resend\.dev>?$/i.test(env.RESEND_FROM_EMAIL.trim())
+  )
+    conflicts.push("Resend must use a verified production sender");
+  for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SITE_URL"]) {
+    if (
+      production &&
+      present(env[name]) &&
+      /localhost|127\.0\.0\.1/.test(env[name])
+    )
+      conflicts.push(`${name} cannot target localhost in production`);
+  }
+  return conflicts;
+}
+
 export function evaluateProviderReadiness(
   env,
   { production = env.NODE_ENV === "production" } = {},
@@ -140,11 +170,15 @@ export function evaluateProviderReadiness(
         : "ready";
     return { id: provider.id, status, missing, invalid };
   });
+  const conflicts = configurationConflicts(env, { production });
   return {
-    status: providers.every((provider) => provider.status === "ready")
+    status:
+      providers.every((provider) => provider.status === "ready") &&
+      conflicts.length === 0
       ? "ready"
       : "incomplete",
     providers,
+    conflicts,
   };
 }
 
