@@ -24,6 +24,7 @@
     "verify:cdn": "node scripts/verify-cdn-delivery.mjs",
     "test:rls:local": "supabase test db",
     "verify:rls:live": "node scripts/verify-supabase-rls.mjs",
+    "verify:rls:config": "node scripts/verify-supabase-rls.mjs --check-config",
     "verify:providers": "node scripts/verify-provider-config.mjs",
     "verify:providers:live": "node scripts/verify-provider-config.mjs --probe",
     "backup:validate": "node scripts/validate-backup.mjs",
