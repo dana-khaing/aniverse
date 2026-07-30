@@ -60,10 +60,18 @@ The live command reads provider account metadata but does not create, update, or
 delete provider resources. It never prints response bodies, credentials, or
 tokens.
 
+The gate also rejects combinations that are individually well-formed but unsafe:
+identical Supabase public/service keys, Stripe test keys in Production,
+`resend.dev` senders, and localhost production URLs. Set
+`ANIVERSE_PROVIDER_REPORT_PATH` to write a permission-restricted, redacted JSON
+report suitable for release evidence.
+
 The manual `Verify production provider readiness` GitHub workflow pulls
 Production variables from the linked Vercel project, validates them, builds the
 exact production artifact, and optionally performs the live probes. Protect the
 `production-provider-verification` environment with required reviewers.
+Every workflow run uploads the latest redacted report as the
+`production-provider-readiness` artifact, including failed configuration runs.
 
 ## Release order
 

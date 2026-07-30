@@ -2,9 +2,21 @@ import {
   evaluateProviderReadiness,
   publicProviderReadiness,
 } from "../src/lib/provider-readiness.mjs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 const readiness = evaluateProviderReadiness(process.env, { production: true });
 const shouldProbe = process.argv.includes("--probe");
+const reportPath = process.env.ANIVERSE_PROVIDER_REPORT_PATH;
+
+async function emit(report) {
+  const output = `${JSON.stringify(report, null, 2)}\n`;
+  console.log(output.trim());
+  if (reportPath) {
+    await mkdir(dirname(reportPath), { recursive: true });
+    await writeFile(reportPath, output, { mode: 0o600 });
+  }
+}
 
 for (const provider of readiness.providers) {
   if (provider.status === "ready") continue;
@@ -20,9 +32,18 @@ for (const provider of readiness.providers) {
     .join("; ");
   console.error(`${provider.id}: ${provider.status} (${details})`);
 }
+for (const conflict of readiness.conflicts)
+  console.error(`conflict: ${conflict}`);
 
 if (readiness.status !== "ready") {
   console.error("Production provider configuration is incomplete.");
+  await emit({
+    status: "incomplete",
+    providers: publicProviderReadiness(readiness),
+    conflictCount: readiness.conflicts.length,
+    probes: [],
+    verifiedAt: new Date().toISOString(),
+  });
   process.exit(1);
 }
 
@@ -82,15 +103,10 @@ if (shouldProbe) {
   }
 }
 
-console.log(
-  JSON.stringify(
-    {
-      status: "ready",
-      providers: publicProviderReadiness(readiness),
-      probes: completed,
-      verifiedAt: new Date().toISOString(),
-    },
-    null,
-    2,
-  ),
-);
+await emit({
+  status: "ready",
+  providers: publicProviderReadiness(readiness),
+  conflictCount: 0,
+  probes: completed,
+  verifiedAt: new Date().toISOString(),
+});
