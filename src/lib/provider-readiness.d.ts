@@ -1,6 +1,7 @@
 export type ProviderStatus = "ready" | "missing" | "invalid";
 export type ProviderReadiness = {
   status: "ready" | "incomplete";
+  conflicts: string[];
   providers: Array<{
     id: string;
     status: ProviderStatus;
