@@ -47,6 +47,15 @@ if (process.argv.includes("--check-config")) {
 
 if (missing.length) {
   console.error(`Live RLS verification is missing: ${missing.join(", ")}`);
+  await emit({
+    status: "incomplete",
+    checks: [],
+    checkCount: 0,
+    accountCount: accountDefinitions.length,
+    cleanup: "not-started",
+    verifiedAt: new Date().toISOString(),
+    missing,
+  });
   process.exit(2);
 }
 

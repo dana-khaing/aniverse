@@ -8,10 +8,10 @@ AniVerse verifies authorization at three levels:
    `supabase/tests/multi_account_rls_test.sql` against the local Supabase
    containers. It covers private profiles, libraries, roles, creator-team
    isolation, anonymous catalog access, and blocked role escalation.
-3. `pnpm verify:rls:live` signs in as two dedicated real accounts, creates one
-   temporary custom list for each account, verifies cross-account reads and
-   writes are denied, checks role visibility and escalation, then removes the
-   fixtures.
+3. `pnpm verify:rls:live` signs in as five dedicated real accounts (two
+   viewers, creator, moderator, and administrator). It verifies anonymous
+   catalog access, private-row isolation, expected roles, and blocked
+   escalation before removing every generated fixture.
 
 ## Local database verification
 
@@ -30,27 +30,36 @@ fixtures.
 
 ## Live project verification
 
-Create two ordinary, non-admin AniVerse accounts in the target Supabase
-project. Do not use personal or production administrator accounts. Configure:
+Create five dedicated AniVerse verification accounts in the target project.
+Assign the expected creator, moderator, and administrator roles before the
+run. These must not be personal accounts or the sole production administrator.
+Configure:
 
 ```text
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
-ANIVERSE_RLS_USER_A_EMAIL
-ANIVERSE_RLS_USER_A_PASSWORD
-ANIVERSE_RLS_USER_B_EMAIL
-ANIVERSE_RLS_USER_B_PASSWORD
+ANIVERSE_RLS_VIEWER_A_EMAIL / ANIVERSE_RLS_VIEWER_A_PASSWORD
+ANIVERSE_RLS_VIEWER_B_EMAIL / ANIVERSE_RLS_VIEWER_B_PASSWORD
+ANIVERSE_RLS_CREATOR_EMAIL / ANIVERSE_RLS_CREATOR_PASSWORD
+ANIVERSE_RLS_MODERATOR_EMAIL / ANIVERSE_RLS_MODERATOR_PASSWORD
+ANIVERSE_RLS_ADMIN_EMAIL / ANIVERSE_RLS_ADMIN_PASSWORD
+ANIVERSE_RLS_REPORT_PATH (optional)
 ```
 
 The verifier intentionally does not accept or use a service-role key. It never
 prints credentials, access tokens, user IDs, list IDs, or returned row data.
 Temporary fixtures use random UUIDs and are removed in a `finally` cleanup.
+Run `pnpm verify:rls:config` first to report missing configuration without
+contacting Supabase. The former `USER_A` and `USER_B` variable names remain
+accepted locally for viewer compatibility.
 
 For GitHub Actions, store the same values as repository or environment secrets,
 prefixing the first two with `ANIVERSE_` as shown in
 `.github/workflows/verify-supabase-rls.yml`. Protect the
 `production-rls-verification` environment with required reviewers, then run the
-workflow manually.
+workflow manually. GitHub uploads the redacted JSON result as
+`supabase-rls-verification`; it contains check names and outcomes, never
+identities or row contents.
 
 ## Expected evidence
 
@@ -59,7 +68,12 @@ A successful live run emits only:
 ```json
 {
   "status": "passed",
-  "checks": 10,
+  "checks": [
+    { "name": "all verification identities are distinct", "status": "passed" }
+  ],
+  "checkCount": 20,
+  "accountCount": 5,
+  "cleanup": "passed",
   "verifiedAt": "..."
 }
 ```
