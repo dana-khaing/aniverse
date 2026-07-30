@@ -22,12 +22,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:rls:audit
-      - name: Verify isolation with two real accounts
+      - name: Verify isolation and role boundaries with real accounts
         run: pnpm verify:rls:live
         env:
           SUPABASE_URL: ${{ secrets.ANIVERSE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ANIVERSE_SUPABASE_PUBLISHABLE_KEY }}
-          ANIVERSE_RLS_USER_A_EMAIL: ${{ secrets.ANIVERSE_RLS_USER_A_EMAIL }}
-          ANIVERSE_RLS_USER_A_PASSWORD: ${{ secrets.ANIVERSE_RLS_USER_A_PASSWORD }}
-          ANIVERSE_RLS_USER_B_EMAIL: ${{ secrets.ANIVERSE_RLS_USER_B_EMAIL }}
-          ANIVERSE_RLS_USER_B_PASSWORD: ${{ secrets.ANIVERSE_RLS_USER_B_PASSWORD }}
+          ANIVERSE_RLS_VIEWER_A_EMAIL: ${{ secrets.ANIVERSE_RLS_VIEWER_A_EMAIL }}
+          ANIVERSE_RLS_VIEWER_A_PASSWORD: ${{ secrets.ANIVERSE_RLS_VIEWER_A_PASSWORD }}
+          ANIVERSE_RLS_VIEWER_B_EMAIL: ${{ secrets.ANIVERSE_RLS_VIEWER_B_EMAIL }}
+          ANIVERSE_RLS_VIEWER_B_PASSWORD: ${{ secrets.ANIVERSE_RLS_VIEWER_B_PASSWORD }}
+          ANIVERSE_RLS_CREATOR_EMAIL: ${{ secrets.ANIVERSE_RLS_CREATOR_EMAIL }}
+          ANIVERSE_RLS_CREATOR_PASSWORD: ${{ secrets.ANIVERSE_RLS_CREATOR_PASSWORD }}
+          ANIVERSE_RLS_MODERATOR_EMAIL: ${{ secrets.ANIVERSE_RLS_MODERATOR_EMAIL }}
+          ANIVERSE_RLS_MODERATOR_PASSWORD: ${{ secrets.ANIVERSE_RLS_MODERATOR_PASSWORD }}
+          ANIVERSE_RLS_ADMIN_EMAIL: ${{ secrets.ANIVERSE_RLS_ADMIN_EMAIL }}
+          ANIVERSE_RLS_ADMIN_PASSWORD: ${{ secrets.ANIVERSE_RLS_ADMIN_PASSWORD }}
+          ANIVERSE_RLS_REPORT_PATH: artifacts/supabase-rls-report.json
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-rls-verification
+          path: artifacts/supabase-rls-report.json
+          if-no-files-found: error
