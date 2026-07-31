@@ -18,9 +18,20 @@ export function includesRequiredRole(
   return required.some((role) => assigned.includes(role));
 }
 
+export function rejectCrossOriginMutation(request?: Request) {
+  if (!request || ["GET", "HEAD", "OPTIONS"].includes(request.method))
+    return null;
+  const origin = request.headers.get("origin");
+  if (!origin || origin === new URL(request.url).origin) return null;
+  return Response.json({ error: "Untrusted request origin" }, { status: 403 });
+}
+
 export async function authorizeRoles(
   required: readonly StaffRole[],
+  request?: Request,
 ): Promise<AccessResult> {
+  const originRejection = rejectCrossOriginMutation(request);
+  if (originRejection) return { ok: false, response: originRejection };
   if (!isSupabaseConfigured())
     return {
       ok: false,
@@ -70,5 +81,7 @@ export async function authorizeRoles(
   return { ok: true, user, roles };
 }
 
-export const authorizeAdministrator = () => authorizeRoles(["admin"]);
-export const authorizeStaff = () => authorizeRoles(staffRoles);
+export const authorizeAdministrator = (request?: Request) =>
+  authorizeRoles(["admin"], request);
+export const authorizeStaff = (request?: Request) =>
+  authorizeRoles(staffRoles, request);

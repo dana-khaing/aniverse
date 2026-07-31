@@ -32,7 +32,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const access = await authorizeStaff();
+  const access = await authorizeStaff(request);
   if (!access.ok) return access.response;
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin)

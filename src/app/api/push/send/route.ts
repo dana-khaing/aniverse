@@ -11,7 +11,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const access = await authorizeStaff();
+  const access = await authorizeStaff(request);
   if (!access.ok) return access.response;
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
