@@ -4,6 +4,7 @@ import { extname, join, relative } from "node:path";
 const root = process.cwd();
 const sourceRoot = join(root, "src");
 const findings = [];
+const privilegedRoutes = [];
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -40,6 +41,33 @@ for (const file of await walk(sourceRoot)) {
     !path.endsWith("/strikes/expire/route.ts")
   )
     findings.push(`${path}: admin service-role route lacks centralized guard`);
+  if (path.includes("/app/api/") && source.includes("getAdminClient")) {
+    const boundary = source.includes("@/lib/supabase/authorization")
+      ? "staff-role"
+      : /verifyMuxWebhook|verifyStripeWebhook|stripe-signature|mux-signature/.test(
+            source,
+          )
+        ? "webhook-signature"
+        : source.includes("CRON_SECRET")
+          ? "cron-secret"
+          : source.includes("consumeRateLimit") &&
+              source.includes("Untrusted submission origin")
+            ? "rate-limited-public"
+          : source.includes("@/lib/supabase/server")
+            ? "authenticated-scope"
+            : null;
+    if (!boundary)
+      findings.push(`${path}: service-role route has no recognized trust boundary`);
+    else privilegedRoutes.push({ path, boundary });
+  }
+  if (
+    path.includes("/api/v1/admin/") &&
+    /export async function (?:POST|PUT|PATCH|DELETE)\(request: Request\)/.test(
+      source,
+    ) &&
+    !/authorize(?:Staff|Administrator)\(request\)/.test(source)
+  )
+    findings.push(`${path}: staff mutation lacks centralized origin enforcement`);
 }
 
 if (findings.length) {
@@ -48,4 +76,6 @@ if (findings.length) {
   process.exit(1);
 }
 
-console.log("Service-role boundary audit passed.");
+console.log(
+  `Service-role boundary audit passed for ${privilegedRoutes.length} privileged routes.`,
+);
