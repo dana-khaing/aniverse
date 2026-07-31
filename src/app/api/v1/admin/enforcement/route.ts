@@ -48,7 +48,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const access = await authorizeStaff();
+  const access = await authorizeStaff(request);
   if (!access.ok) return access.response;
   const user = access.user;
   const origin = request.headers.get("origin");

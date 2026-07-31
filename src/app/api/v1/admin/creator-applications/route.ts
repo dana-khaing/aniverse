@@ -41,7 +41,7 @@ export async function GET() {
   );
 }
 export async function PATCH(request: Request) {
-  const access = await authorizeAdministrator();
+  const access = await authorizeAdministrator(request);
   if (!access.ok) return access.response;
   const reviewer = access.user;
   const parsed = reviewSchema.safeParse(await request.json().catch(() => null));

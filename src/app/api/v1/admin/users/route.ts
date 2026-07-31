@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const access = await authorizeAdministrator();
+  const access = await authorizeAdministrator(request);
   if (!access.ok) return access.response;
   const actor = access.user;
   const parsed = userAccessActionSchema.safeParse(
