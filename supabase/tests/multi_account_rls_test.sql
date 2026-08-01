@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(14);
 
 select is_empty(
   $$
@@ -62,6 +62,27 @@ insert into public.creator_teams (id, name, slug, created_by) values
     '20000000-0000-4000-8000-000000000002'
   );
 
+insert into public.watch_parties (id, host_id, name) values
+  (
+    'd1000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    'User A party'
+  ),
+  (
+    'd2000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000002',
+    'User B party'
+  );
+
+insert into public.watch_party_invitations (
+  id, party_id, invited_by, email
+) values (
+  'e1000000-0000-4000-8000-000000000001',
+  'd1000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  'guest@aniverse.test'
+);
+
 set local role authenticated;
 set local request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
 set local request.jwt.claim.role = 'authenticated';
@@ -107,6 +128,15 @@ select throws_ok(
   '42501',
   null,
   'authenticated users cannot grant themselves admin'
+);
+select is_empty(
+  $$
+    update public.watch_party_invitations
+    set party_id = 'd2000000-0000-4000-8000-000000000002'
+    where id = 'e1000000-0000-4000-8000-000000000001'
+    returning id
+  $$,
+  'party hosts cannot retarget invitations to another host party'
 );
 
 set local request.jwt.claim.sub = '20000000-0000-4000-8000-000000000002';

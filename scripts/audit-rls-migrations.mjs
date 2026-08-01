@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { auditRlsSchema } from "./lib/rls-audit.mjs";
 
 const migrationDirectory = resolve("supabase/migrations");
 const migrationFiles = (await readdir(migrationDirectory))
@@ -13,27 +14,16 @@ const schema = (
   )
 ).join("\n");
 
-const tables = [
-  ...schema.matchAll(
-    /create\s+table\s+(?:if\s+not\s+exists\s+)?public\.("?[\w]+"?)/gi,
-  ),
-].map((match) => match[1].replaceAll('"', "").toLowerCase());
-const uniqueTables = [...new Set(tables)].sort();
-const missingRls = uniqueTables.filter((table) => {
-  const escaped = table.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return !new RegExp(
-    `alter\\s+table\\s+(?:if\\s+exists\\s+)?public\\."?${escaped}"?\\s+enable\\s+row\\s+level\\s+security`,
-    "i",
-  ).test(schema);
-});
+const result = auditRlsSchema(schema);
 
-if (missingRls.length) {
-  console.error(
-    `RLS audit failed. Public tables without an enable statement: ${missingRls.join(", ")}`,
-  );
+if (result.findings.length) {
+  console.error("Semantic RLS audit failed:");
+  for (const finding of result.findings) {
+    console.error(`- ${finding.rule}: ${finding.object}`);
+  }
   process.exit(1);
 }
 
 console.log(
-  `RLS audit passed for ${uniqueTables.length} public tables across ${migrationFiles.length} migrations.`,
+  `Semantic RLS audit passed for ${result.tables.length} public tables, ${result.views.length} public views, and ${result.definerFunctions.length} security-definer functions across ${migrationFiles.length} migrations.`,
 );

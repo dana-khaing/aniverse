@@ -22,6 +22,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:rls:audit
+      - name: Run hosted Supabase security advisors
+        run: pnpm exec supabase db advisors --db-url "$SUPABASE_DB_URL" --type security --fail-on error
+        env:
+          SUPABASE_DB_URL: ${{ secrets.ANIVERSE_SUPABASE_DB_URL }}
       - name: Verify isolation and role boundaries with real accounts
         run: pnpm verify:rls:live
         env:
