@@ -38,4 +38,7 @@ imports the service client and requires one recognized boundary:
 | `cron-secret` | scheduled worker | server-only bearer secret |
 | `rate-limited-public` | legal claimant | same-origin request, validation, spam score, and rate limit |
 
-Any new privileged route without one of these explicit boundaries fails CI.
+Any new privileged route without one of these explicit boundaries fails CI. The
+current allowlist contains 34 routes; creator application submission was removed
+from it in favor of the authenticated `submit_creator_application` RPC, whose
+identity is always derived from `auth.uid()`.
