@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -8,7 +8,7 @@ const schema = z.object({ slug:z.string().min(1), episode:z.number().int().posit
 export async function POST(request:Request){
   if(!isSupabaseConfigured())return new Response(null,{status:204});
   const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return new Response(null,{status:204});
-  if(!consumeRateLimit(`playback:${user.id}`,60,1))return Response.json({error:"Too many playback events"},{status:429});
+  if(!(await consumeDistributedRateLimit("playback",user.id,60,1)))return Response.json({error:"Too many playback events"},{status:429});
   const parsed=schema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return Response.json({error:"Invalid playback event"},{status:400});
   const{data:preferences}=await supabase.from("user_preferences").select("playback_analytics_enabled").eq("user_id",user.id).maybeSingle();if(preferences?.playback_analytics_enabled===false)return new Response(null,{status:204});
   const{data:episode}=await supabase.from("episodes").select("id,seasons!inner(title_id,titles!inner(id,slug))").eq("number",parsed.data.episode).eq("seasons.titles.slug",parsed.data.slug).maybeSingle();

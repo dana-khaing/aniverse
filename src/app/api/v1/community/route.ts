@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { communityActionSchema } from "@/lib/community";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 export async function GET() {
   if (!isSupabaseConfigured())
     return Response.json(
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
         { error: "Untrusted report origin" },
         { status: 403 },
       );
-    if (!consumeRateLimit(`community-report:${user.id}`, 5, 1 / 300))
+    if (!(await consumeDistributedRateLimit("community-report", user.id, 5, 1 / 300)))
       return Response.json(
         { error: "Too many reports. Try again later." },
         { status: 429 },
