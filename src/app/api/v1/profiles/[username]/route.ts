@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { profileBlockSchema, profileFollowSchema, profileReportSchema, profileReviewSchema } from "@/lib/public-profile";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 
 export async function GET(_: Request, { params }: { params: Promise<{ username: string }> }) {
   if (!isSupabaseConfigured()) return Response.json({ error: "Cloud profiles are unavailable" }, { status: 503 });
@@ -114,7 +114,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ user
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Sign in to report profiles" }, { status: 401 });
-  if (!consumeRateLimit(`profile-report:${user.id}`, 5, 1 / 300)) return Response.json({ error: "Too many reports. Try again later." }, { status: 429 });
+  if (!(await consumeDistributedRateLimit("profile-report", user.id, 5, 1 / 300))) return Response.json({ error: "Too many reports. Try again later." }, { status: 429 });
   const parsed = profileReportSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Choose a reason and add at least 10 characters of detail" }, { status: 400 });
   const { username } = await params;

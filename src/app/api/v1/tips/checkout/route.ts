@@ -2,14 +2,14 @@ import { randomUUID } from "node:crypto";
 import { getStripe, stripeReturnUrl, tipCheckoutSchema } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin)
     return Response.json({ error: "Untrusted checkout origin" }, { status: 403 });
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous";
-  if (!consumeRateLimit(`tip:${ip}`, 5, 1 / 60))
+  if (!(await consumeDistributedRateLimit("tip", ip, 5, 1 / 60)))
     return Response.json({ error: "Too many checkout attempts" }, { status: 429 });
   if (!process.env.STRIPE_SECRET_KEY)
     return Response.json(

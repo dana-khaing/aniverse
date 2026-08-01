@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getStripe, stripeReturnUrl } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 
 const requestSchema = z.object({ creatorTeamId: z.string().uuid() });
 export async function POST(request: Request) {
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (origin && origin !== new URL(request.url).origin)
     return Response.json({ error: "Untrusted onboarding origin" }, { status: 403 });
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous";
-  if (!consumeRateLimit(`connect:${ip}`, 5, 1 / 60))
+  if (!(await consumeDistributedRateLimit("connect", ip, 5, 1 / 60)))
     return Response.json({ error: "Too many onboarding attempts" }, { status: 429 });
   if (!process.env.STRIPE_SECRET_KEY)
     return Response.json(

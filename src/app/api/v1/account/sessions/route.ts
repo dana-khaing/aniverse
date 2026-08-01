@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 import { createClient } from "@/lib/supabase/server";
 const heartbeatSchema = z.object({
   deviceName: z.string().trim().min(1).max(120),
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       { error: "Verified session required" },
       { status: 401 },
     );
-  if (!consumeRateLimit(`session:${user.id}`, 20, 1 / 30))
+  if (!(await consumeDistributedRateLimit("session", user.id, 20, 1 / 30)))
     return Response.json(
       { error: "Too many session updates" },
       { status: 429 },

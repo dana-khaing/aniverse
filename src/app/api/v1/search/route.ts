@@ -1,11 +1,11 @@
 import { searchCatalog } from "@/lib/catalog-repository";
 import { publicCatalogHeaders } from "@/lib/delivery-policy";
-import { consumeRateLimit } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const key = request.headers.get("x-forwarded-for") ?? "local";
-  if (!consumeRateLimit(`search:${key}`))
+  if (!(await consumeDistributedRateLimit("search", key)))
     return Response.json(
       { error: "Too many requests" },
       {

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { dmcaRequestSchema } from "@/lib/legal";
-import { consumeRateLimit, spamScore } from "@/lib/security";
+import { consumeDistributedRateLimit } from "@/lib/distributed-security";
+import { spamScore } from "@/lib/security";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   const clientAddress =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   const rateKey = createHash("sha256").update(clientAddress).digest("hex");
-  if (!consumeRateLimit(`dmca:${rateKey}`, 3, 1 / 3600))
+  if (!(await consumeDistributedRateLimit("dmca", rateKey, 3, 1 / 3600)))
     return Response.json(
       { error: "Too many submissions. Try again later." },
       { status: 429, headers: { "retry-after": "3600" } },
