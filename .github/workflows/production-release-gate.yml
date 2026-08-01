@@ -1,0 +1,98 @@
+name: Production release enforcement gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe_live_providers:
+        description: Probe every configured provider API
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release-enforcement
+  cancel-in-progress: false
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-release-verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run static security gates
+        run: |
+          pnpm test:api:contracts
+          pnpm test:rls:audit
+          pnpm test:security:service-role
+          pnpm test:indexes
+      - name: Pull protected production configuration
+        run: >-
+          pnpm dlx vercel@57.0.0 pull
+          --yes
+          --environment=production
+          --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Validate and probe production providers
+        run: >-
+          node --env-file=.vercel/.env.production.local
+          scripts/verify-provider-config.mjs
+          ${{ inputs.probe_live_providers && '--probe' || '' }}
+        env:
+          ANIVERSE_PROVIDER_REPORT_PATH: artifacts/provider-readiness.json
+      - name: Run Supabase security advisors
+        run: pnpm exec supabase db advisors --db-url "$SUPABASE_DB_URL" --type security --fail-on error
+        env:
+          SUPABASE_DB_URL: ${{ secrets.ANIVERSE_SUPABASE_DB_URL }}
+      - name: Prove multi-account data and storage isolation
+        run: pnpm verify:rls:live
+        env:
+          SUPABASE_URL: ${{ secrets.ANIVERSE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.ANIVERSE_SUPABASE_PUBLISHABLE_KEY }}
+          ANIVERSE_RLS_VIEWER_A_EMAIL: ${{ secrets.ANIVERSE_RLS_VIEWER_A_EMAIL }}
+          ANIVERSE_RLS_VIEWER_A_PASSWORD: ${{ secrets.ANIVERSE_RLS_VIEWER_A_PASSWORD }}
+          ANIVERSE_RLS_VIEWER_B_EMAIL: ${{ secrets.ANIVERSE_RLS_VIEWER_B_EMAIL }}
+          ANIVERSE_RLS_VIEWER_B_PASSWORD: ${{ secrets.ANIVERSE_RLS_VIEWER_B_PASSWORD }}
+          ANIVERSE_RLS_CREATOR_EMAIL: ${{ secrets.ANIVERSE_RLS_CREATOR_EMAIL }}
+          ANIVERSE_RLS_CREATOR_PASSWORD: ${{ secrets.ANIVERSE_RLS_CREATOR_PASSWORD }}
+          ANIVERSE_RLS_MODERATOR_EMAIL: ${{ secrets.ANIVERSE_RLS_MODERATOR_EMAIL }}
+          ANIVERSE_RLS_MODERATOR_PASSWORD: ${{ secrets.ANIVERSE_RLS_MODERATOR_PASSWORD }}
+          ANIVERSE_RLS_ADMIN_EMAIL: ${{ secrets.ANIVERSE_RLS_ADMIN_EMAIL }}
+          ANIVERSE_RLS_ADMIN_PASSWORD: ${{ secrets.ANIVERSE_RLS_ADMIN_PASSWORD }}
+          ANIVERSE_RLS_REPORT_PATH: artifacts/supabase-rls-report.json
+      - name: Build the protected production artifact
+        run: pnpm dlx vercel@57.0.0 build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Verify production CDN behavior
+        run: pnpm verify:cdn | tee artifacts/cdn-verification.txt
+        env:
+          CDN_TEST_URL: ${{ vars.ANIVERSE_PRODUCTION_URL }}
+          CDN_MEDIA_PATH: ${{ vars.ANIVERSE_CDN_MEDIA_PATH }}
+      - name: Run bounded production load gate
+        run: pnpm load:test -- --duration=30 --concurrency=20
+        env:
+          LOAD_TEST_URL: ${{ vars.ANIVERSE_PRODUCTION_URL }}
+          ANIVERSE_LOAD_REPORT_PATH: artifacts/load-test.json
+      - name: Upload redacted release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-evidence-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 90

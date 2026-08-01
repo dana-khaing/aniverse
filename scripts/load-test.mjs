@@ -1,4 +1,6 @@
 import { performance } from "node:perf_hooks";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((argument) => {
@@ -81,4 +83,12 @@ const result = {
   thresholds: { maxP95, maxErrorRate },
 };
 console.log(JSON.stringify(result, null, 2));
+if (process.env.ANIVERSE_LOAD_REPORT_PATH) {
+  await mkdir(dirname(process.env.ANIVERSE_LOAD_REPORT_PATH), { recursive: true });
+  await writeFile(
+    process.env.ANIVERSE_LOAD_REPORT_PATH,
+    `${JSON.stringify(result, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+}
 if (result.latencyMs.p95 > maxP95 || errorRate > maxErrorRate) process.exit(1);
