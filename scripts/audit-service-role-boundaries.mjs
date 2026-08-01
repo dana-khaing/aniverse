@@ -50,7 +50,7 @@ for (const file of await walk(sourceRoot)) {
         ? "webhook-signature"
         : source.includes("CRON_SECRET")
           ? "cron-secret"
-          : source.includes("consumeRateLimit") &&
+          : /consume(?:Distributed)?RateLimit/.test(source) &&
               source.includes("Untrusted submission origin")
             ? "rate-limited-public"
           : source.includes("@/lib/supabase/server")
