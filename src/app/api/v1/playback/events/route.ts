@@ -3,7 +3,7 @@ import { consumeDistributedRateLimit } from "@/lib/distributed-security";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-const schema = z.object({ slug:z.string().min(1), episode:z.number().int().positive(), eventType:z.enum(["start","progress","seek","complete"]), position:z.number().int().nonnegative(), duration:z.number().int().positive() });
+const schema = z.object({ slug:z.string().min(1), episode:z.number().int().positive(), sessionId:z.uuid(),eventId:z.uuid(), eventType:z.enum(["start","progress","seek","complete"]), position:z.number().int().nonnegative(), duration:z.number().int().positive().max(43200) }).refine(v=>v.position<=v.duration+5);
 
 export async function POST(request:Request){
   if(!isSupabaseConfigured())return new Response(null,{status:204});
@@ -13,7 +13,8 @@ export async function POST(request:Request){
   const{data:preferences}=await supabase.from("user_preferences").select("playback_analytics_enabled").eq("user_id",user.id).maybeSingle();if(preferences?.playback_analytics_enabled===false)return new Response(null,{status:204});
   const{data:episode}=await supabase.from("episodes").select("id,seasons!inner(title_id,titles!inner(id,slug))").eq("number",parsed.data.episode).eq("seasons.titles.slug",parsed.data.slug).maybeSingle();
   const relation=episode?.seasons as unknown as {title_id:string}|undefined;if(!episode||!relation)return Response.json({error:"Episode not found"},{status:404});
+  const{data:session}=await supabase.from("playback_sessions").select("id").eq("id",parsed.data.sessionId).eq("user_id",user.id).eq("episode_id",episode.id).gt("expires_at",new Date().toISOString()).maybeSingle();if(!session)return Response.json({error:"Invalid playback session"},{status:403});
   const country=request.headers.get("x-vercel-ip-country")?.toUpperCase();
-  const{error}=await supabase.from("playback_events").insert({user_id:user.id,title_id:relation.title_id,episode_id:episode.id,event_type:parsed.data.eventType,position_seconds:parsed.data.position,duration_seconds:parsed.data.duration,country_code:country&&/^[A-Z]{2}$/.test(country)?country:null});
+  const{error}=await supabase.from("playback_events").insert({user_id:user.id,title_id:relation.title_id,episode_id:episode.id,session_id:session.id,event_id:parsed.data.eventId,event_type:parsed.data.eventType,position_seconds:parsed.data.position,duration_seconds:parsed.data.duration,country_code:country&&/^[A-Z]{2}$/.test(country)?country:null});
   return error?Response.json({error:"Could not record playback event"},{status:500}):new Response(null,{status:204});
 }

@@ -82,6 +82,7 @@ export function LocalPlayer({
   const lastEventRef = useRef(0);
   const partySequenceRef = useRef(0);
   const applyingPartyEventRef = useRef(false);
+  const playbackSessionRef = useRef<string | null>(null);
   const [partyStatus, setPartyStatus] = useState("");
   const [source, setSource] = useState<string>();
   const [speed, setSpeed] = useState(1);
@@ -170,6 +171,8 @@ export function LocalPlayer({
           eventType,
           position: Math.max(0, Math.floor(next)),
           duration: Math.max(1, Math.floor(duration || 1440)),
+          sessionId: playbackSessionRef.current,
+          eventId: crypto.randomUUID(),
         }),
       }).catch(() => undefined);
     },
@@ -187,10 +190,12 @@ export function LocalPlayer({
         if (response.ok) {
           const data = (await response.json()) as {
             url: string;
+            playbackSessionId?: string | null;
             subtitles?: SubtitleTrack[];
             markers?: EpisodeMarker[];
           };
           if (!cancelled) {
+            playbackSessionRef.current = data.playbackSessionId ?? null;
             setSource(data.url);
             setSubtitleTracks(data.subtitles ?? []);
             setMarkers(

@@ -13,6 +13,7 @@ export async function GET(
     );
   const { episodeId } = await params;
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: episode } = await supabase
     .from("episodes")
     .select("id,status,available_at")
@@ -88,12 +89,14 @@ export async function GET(
     label: track.label,
     default: track.is_default,
   }));
+  const { data: playbackSession } = user ? await supabase.from("playback_sessions").insert({ user_id:user.id,episode_id:episodeId }).select("id").single() : { data:null };
   return Response.json(
     {
       url: signedPlaybackUrl(upload.playback_id),
       subtitles,
       markers,
       audioTracks,
+      playbackSessionId: playbackSession?.id ?? null,
       expiresIn: 3600,
     },
     { headers: privatePlaybackHeaders },
