@@ -2,9 +2,12 @@ import { z } from "zod";
 import { getStripe, stripeReturnUrl } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { consumeDistributedRateLimit } from "@/lib/distributed-security";
+import { requireSensitiveAccess } from "@/lib/supabase/step-up";
 
 const requestSchema = z.object({ creatorTeamId: z.string().uuid() });
 export async function POST(request: Request) {
+  const stepUp = await requireSensitiveAccess({ requireAal2: true });
+  if (stepUp) return stepUp;
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin)
     return Response.json({ error: "Untrusted onboarding origin" }, { status: 403 });

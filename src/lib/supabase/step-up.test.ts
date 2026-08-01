@@ -1,0 +1,2 @@
+import{describe,expect,it}from"vitest";import{evaluateSensitiveClaims}from"./step-up";
+describe("sensitive access claims",()=>{it("requires recent authentication",()=>{expect(evaluateSensitiveClaims({iat:100,aal:"aal2"},{},701)).toBe("reauth_required");expect(evaluateSensitiveClaims({iat:650,aal:"aal2"},{},701)).toBeNull()});it("requires AAL2 when requested",()=>expect(evaluateSensitiveClaims({iat:700,aal:"aal1"},{requireAal2:true},701)).toBe("mfa_required"))});

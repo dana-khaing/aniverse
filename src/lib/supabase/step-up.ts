@@ -1,0 +1,4 @@
+import "server-only";
+import { createClient } from "./server";
+export function evaluateSensitiveClaims(claims:Record<string,unknown>|null|undefined,{requireAal2=false,maxAgeSeconds=600}={},nowSeconds=Math.floor(Date.now()/1000)){const issuedAt=Number(claims?.iat);if(!Number.isFinite(issuedAt)||nowSeconds-issuedAt>maxAgeSeconds)return "reauth_required" as const;if(requireAal2&&claims?.aal!=="aal2")return "mfa_required" as const;return null}
+export async function requireSensitiveAccess(options?:{requireAal2?:boolean;maxAgeSeconds?:number}){const supabase=await createClient();const[{data:userData},{data:claimData}]=await Promise.all([supabase.auth.getUser(),supabase.auth.getClaims()]);if(!userData.user)return Response.json({error:"authentication_required"},{status:401});const failure=evaluateSensitiveClaims(claimData?.claims as Record<string,unknown>,options);return failure?Response.json({error:failure},{status:428}):null}

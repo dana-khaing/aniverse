@@ -3,6 +3,7 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "./config";
 import { createClient } from "./server";
+import { requireSensitiveAccess } from "./step-up";
 
 export const staffRoles = ["moderator", "admin"] as const;
 export type StaffRole = (typeof staffRoles)[number];
@@ -32,6 +33,7 @@ export async function authorizeRoles(
 ): Promise<AccessResult> {
   const originRejection = rejectCrossOriginMutation(request);
   if (originRejection) return { ok: false, response: originRejection };
+  if(request&&!["GET","HEAD","OPTIONS"].includes(request.method)&&required.includes("admin")){const stepUp=await requireSensitiveAccess({requireAal2:true});if(stepUp)return{ok:false,response:stepUp}}
   if (!isSupabaseConfigured())
     return {
       ok: false,
