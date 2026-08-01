@@ -28,4 +28,9 @@ describe("watch party permissions", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("validates authoritative playback sequence input", () => {
+    expect(partyActionSchema.safeParse({ action: "playback", operationId: crypto.randomUUID(), expectedSequence: 4, command: "seek", position: 120, playbackRate: 1 }).success).toBe(true);
+    expect(partyActionSchema.safeParse({ action: "playback", operationId: crypto.randomUUID(), expectedSequence: -1, command: "play", position: 0, playbackRate: 1 }).success).toBe(false);
+  });
 });
