@@ -17,7 +17,7 @@
     "test:e2e:chromium": "playwright test --project=chromium-desktop --project=chromium-mobile",
     "test:e2e:matrix": "playwright test",
     "test:e2e:quality-matrix": "playwright test e2e/accessibility-matrix.spec.ts e2e/playback-controls.spec.ts e2e/multi-user-concurrency.spec.ts",
-    "test:rls:audit": "node --test scripts/lib/rls-audit.test.mjs && node scripts/audit-rls-migrations.mjs",
+    "test:rls:audit": "node --test scripts/lib/rls-audit.node-test.mjs && node scripts/audit-rls-migrations.mjs",
     "test:security:service-role": "node scripts/audit-service-role-boundaries.mjs",
     "test:indexes": "node scripts/audit-production-indexes.mjs",
     "load:test": "node scripts/load-test.mjs",
