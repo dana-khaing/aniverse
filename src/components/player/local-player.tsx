@@ -352,8 +352,7 @@ export function LocalPlayer({
   }
   function broadcastParty(action: PartyPlaybackEvent["action"], next: number) {
     if (!partyId || !partyController || applyingPartyEventRef.current) return;
-    const sequence = Math.max(Date.now(), partySequenceRef.current + 1);
-    partySequenceRef.current = sequence;
+    const sequence = partySequenceRef.current;
     void sendPartyEvent({
       id: crypto.randomUUID(),
       author: "Host",

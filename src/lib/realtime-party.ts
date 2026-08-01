@@ -98,8 +98,17 @@ export function usePartyTransport(
           config: { private: true, presence: { key: self } },
         })
         .on("broadcast", { event: "party-event" }, ({ payload }) =>
-          onEvent(payload as PartyEvent),
+          (payload as PartyEvent).type !== "playback" && onEvent(payload as PartyEvent),
         )
+        .on("postgres_changes", {
+          event: "INSERT", schema: "public", table: "watch_party_playback_events",
+          filter: `party_id=eq.${partyId}`,
+        }, ({ new: row }) => onEvent({
+          id: String(row.id), author: "Host", body: `${row.action} at ${Math.floor(Number(row.position_seconds))} seconds`,
+          type: "playback", action: row.action as PartyPlaybackEvent["action"],
+          position: Number(row.position_seconds), playbackRate: Number(row.playback_rate),
+          sentAt: new Date(String(row.created_at)).getTime(), sequence: Number(row.sequence),
+        }))
         .on("presence", { event: "sync" }, () => {
           const count = Object.keys(channel.presenceState()).length;
           setOnlineCount(Math.max(1, count));
@@ -189,7 +198,15 @@ export function usePartyTransport(
   }, [onEvent, partyId]); // connection state changes are outputs, not subscription inputs
 
   async function send(event: PartyEvent) {
-    if (remote.current)
+    if (remote.current && event.type === "playback") {
+      const response = await fetch(`/api/v1/parties/${encodeURIComponent(partyId!)}`, {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "playback", operationId: event.id,
+          expectedSequence: event.sequence, command: event.action,
+          position: event.position, playbackRate: event.playbackRate }),
+      });
+      if (!response.ok) throw new Error("Party playback update rejected");
+    } else if (remote.current)
       await remote.current.send({
         type: "broadcast",
         event: "party-event",

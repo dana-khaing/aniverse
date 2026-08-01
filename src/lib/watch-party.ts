@@ -24,6 +24,12 @@ export const partyActionSchema = z.discriminatedUnion("action", [
     state: z.enum(["online", "away", "offline"]),
     reconnected: z.boolean().default(false),
   }),
+  z.object({
+    action: z.literal("playback"), operationId: z.string().uuid(),
+    expectedSequence: z.number().int().nonnegative(),
+    command: z.enum(["play", "pause", "seek"]),
+    position: z.number().nonnegative(), playbackRate: z.number().min(.25).max(4),
+  }),
 ]);
 
 export function canManageParty(role: string | null | undefined) {

@@ -124,6 +124,19 @@ export async function PATCH(
       );
     return Response.json({ state: parsed.data.state });
   }
+  if (parsed.data.action === "playback") {
+    const { data, error } = await access.supabase.rpc("apply_party_playback_event", {
+      p_party_id: id, p_operation_id: parsed.data.operationId,
+      p_expected_sequence: parsed.data.expectedSequence,
+      p_action: parsed.data.command, p_position_seconds: parsed.data.position,
+      p_playback_rate: parsed.data.playbackRate,
+    });
+    if (error) return Response.json(
+      { error: error.message.includes("Stale") ? "stale_party_sequence" : "Party playback update rejected" },
+      { status: error.message.includes("Stale") ? 409 : 403 },
+    );
+    return Response.json({ playback: data });
+  }
   if (!canManageParty(access.role))
     return Response.json(
       { error: "Host or moderator permission required" },
