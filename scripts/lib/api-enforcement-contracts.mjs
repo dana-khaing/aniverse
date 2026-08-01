@@ -70,3 +70,8 @@ export const mutationProxyExemptions = new Set([
   "src/app/api/webhooks/media/route.ts",
   "src/app/api/webhooks/stripe/route.ts",
 ]);
+
+export const sensitiveSelfServiceRoutes = new Set([
+  "src/app/api/v1/account/route.ts",
+  "src/app/api/v1/creator/connect/route.ts",
+]);

@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import {
   apiEnforcementContracts,
   mutationProxyExemptions,
+  sensitiveSelfServiceRoutes,
 } from "./lib/api-enforcement-contracts.mjs";
 
 async function walk(directory) {
@@ -55,6 +56,9 @@ for (const path of routeFiles) {
   if (methods.length && mutationProxyExemptions.has(path) &&
       !["cron", "webhook"].includes(boundary))
     findings.push(`${path}: proxy exemption lacks a trusted local boundary`);
+  if (sensitiveSelfServiceRoutes.has(path) &&
+      !/requireSensitiveAccess\s*\(/.test(source))
+    findings.push(`${path}: sensitive self-service action lacks recent authentication`);
 }
 
 if (findings.length) {
