@@ -1,6 +1,8 @@
 export const apiEnforcementContracts = {
   "public-read": [
     "src/app/api/health/route.ts",
+    "src/app/api/health/live/route.ts",
+    "src/app/api/health/ready/route.ts",
     "src/app/api/push/config/route.ts",
     "src/app/api/v1/playback/[episodeId]/route.ts",
     "src/app/api/v1/recommendations/route.ts",

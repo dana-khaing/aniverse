@@ -75,7 +75,7 @@ const probes = {
       signal: AbortSignal.timeout(10_000),
     }),
   vercel: () =>
-    fetch(new URL("/api/health", process.env.NEXT_PUBLIC_SITE_URL), {
+    fetch(new URL("/api/health/ready", process.env.NEXT_PUBLIC_SITE_URL), {
       signal: AbortSignal.timeout(10_000),
     }),
 };
@@ -91,8 +91,7 @@ if (shouldProbe) {
     if (provider === "vercel") {
       const health = await response.json();
       if (
-        health.status !== "ok" ||
-        health.readiness !== "ready" ||
+        health.status !== "ready" ||
         Object.values(health.integrations ?? {}).some(
           (status) => status !== "ready",
         )
