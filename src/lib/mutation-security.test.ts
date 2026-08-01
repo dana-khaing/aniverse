@@ -6,10 +6,18 @@ describe("mutation request enforcement", () => {
   it("rejects cross-site and unsupported browser mutations", () => {
     expect(enforceMutationRequest(new Request("https://aniverse.test/api", { method: "POST", headers: { origin: "https://evil.test", "content-type": "application/json" } }))?.status).toBe(403);
     expect(enforceMutationRequest(new Request("https://aniverse.test/api", { method: "POST", headers: { "content-type": "text/plain" } }))?.status).toBe(415);
+    expect(enforceMutationRequest(new Request("https://aniverse.test/api", { method: "POST", headers: { origin: "https://aniverse.test", "content-type": "application/json" } }))).toBeNull();
+    expect(enforceMutationRequest(new Request("https://aniverse.test/api", { method: "POST", headers: { "sec-fetch-site": "cross-site", "content-type": "application/json" } }))?.status).toBe(403);
   });
   it("bounds decoded JSON bodies", async () => {
     const result = await readJsonBody(new Request("https://aniverse.test/api", { method: "POST", body: JSON.stringify({ value: "abcd" }) }), z.object({ value: z.string() }), 4);
     if (!("response" in result) || !result.response) throw new Error("Expected rejection");
     expect(result.response.status).toBe(413);
+  });
+  it("rejects declared oversize and malformed JSON payloads", async () => {
+    expect(enforceMutationRequest(new Request("https://aniverse.test/api", { method: "POST", headers: { "content-type": "application/json", "content-length": "1048577" } }))?.status).toBe(413);
+    const malformed = await readJsonBody(new Request("https://aniverse.test/api", { method: "POST", body: "{" }), z.object({ value: z.string() }));
+    if (!("response" in malformed) || !malformed.response) throw new Error("Expected malformed JSON rejection");
+    expect(malformed.response.status).toBe(400);
   });
 });

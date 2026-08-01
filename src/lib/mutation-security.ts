@@ -20,7 +20,13 @@ export async function readJsonBody<T extends z.ZodType>(request: Request, schema
   const text = await request.text();
   if (new TextEncoder().encode(text).byteLength > maxBytes)
     return { response: Response.json({ error: "payload_too_large" }, { status: 413 }) } as const;
-  const parsed = schema.safeParse(JSON.parse(text || "null"));
+  let body: unknown;
+  try {
+    body = JSON.parse(text || "null");
+  } catch {
+    return { response: Response.json({ error: "invalid_request" }, { status: 400 }) } as const;
+  }
+  const parsed = schema.safeParse(body);
   return parsed.success
     ? ({ data: parsed.data as z.infer<T> } as const)
     : ({ response: Response.json({ error: "invalid_request" }, { status: 400 }) } as const);
