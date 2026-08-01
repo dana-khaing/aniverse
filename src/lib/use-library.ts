@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { initialLibraryState, useLocalDemoState } from "@/lib/local-demo";
 import { normalizeLibrary, reduceLibrary, type LibraryAction, type LibrarySnapshot } from "@/lib/library";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -10,16 +10,18 @@ export function useLibrary() {
   const library = normalizeLibrary(stored);
   const [mode, setMode] = useState<"local" | "cloud" | "syncing">("local");
   const [message, setMessage] = useState("");
+  const version = useRef(0);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     let cancelled = false;
     async function sync() {
       setMode("syncing");
-      const response = await fetch("/api/v1/library", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ library }) });
+      const response = await fetch("/api/v1/library", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ library,baseVersion:version.current,operationId:crypto.randomUUID() }) });
       if (cancelled || response.status === 401) { setMode("local"); return; }
       if (!response.ok) throw new Error("sync failed");
-      const data = await response.json() as { library: LibrarySnapshot };
+      const data = await response.json() as { library: LibrarySnapshot;version:number };
+      version.current=data.version;
       setStored(normalizeLibrary(data.library)); setMode("cloud");
     }
     void sync().catch(() => { if (!cancelled) { setMode("local"); setMessage("Cloud sync unavailable — changes remain on this device."); } });

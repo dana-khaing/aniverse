@@ -55,15 +55,17 @@ async function episodeId(supabase: Awaited<ReturnType<typeof createClient>>, slu
 export async function GET() {
   const { supabase, user } = await identity();
   if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
-  try { return Response.json({ library: await loadLibrary(supabase, user.id) }, { headers: { "cache-control": "private, no-store" } }); }
+  try { const {data:sync}=await supabase.from("library_sync_state").select("version").eq("user_id",user.id).maybeSingle(); return Response.json({ library: await loadLibrary(supabase, user.id), version: sync?.version??0 }, { headers: { "cache-control": "private, no-store" } }); }
   catch { return Response.json({ error: "Could not load library" }, { status: 500 }); }
 }
 
 export async function PUT(request: Request) {
   const { supabase, user } = await identity();
   if (!user) return Response.json({ error: "Authentication required" }, { status: 401 });
-  const body = await request.json().catch(() => null) as { library?: LibrarySnapshot } | null;
-  if (!body?.library) return Response.json({ error: "Library is required" }, { status: 400 });
+  const body = await request.json().catch(() => null) as { library?: LibrarySnapshot;baseVersion?:number;operationId?:string } | null;
+  if (!body?.library||!z.number().int().nonnegative().safeParse(body.baseVersion).success||!z.uuid().safeParse(body.operationId).success) return Response.json({ error: "Invalid versioned library sync" }, { status: 400 });
+  const {data:version,error:claimError}=await supabase.rpc("claim_library_sync",{p_base_version:body.baseVersion,p_operation_id:body.operationId});
+  if(claimError)return Response.json({error:"library_conflict"},{status:409});
   const cloud = await loadLibrary(supabase, user.id);
   const merged = mergeLibraries(cloud, normalizeLibrary(body.library));
   const { data: titleRows } = await supabase.from("titles").select("id,slug").in("slug", Array.from(new Set([...merged.favorites, ...merged.watchlist, ...merged.lists.flatMap((list) => list.titles), ...merged.progress.map((item) => item.slug)])));
@@ -83,7 +85,7 @@ export async function PUT(request: Request) {
     }
     if (listId) await supabase.from("custom_list_items").upsert(list.titles.flatMap((slug, itemPosition) => ids.has(slug) ? [{ list_id: listId, title_id: ids.get(slug)!, position: itemPosition }] : []));
   }
-  return Response.json({ library: await loadLibrary(supabase, user.id) });
+  return Response.json({ library: await loadLibrary(supabase, user.id),version });
 }
 
 export async function POST(request: Request) {
