@@ -68,9 +68,11 @@ const accounts = accountDefinitions.map((definition) => ({
   ...definition,
   client: makeClient(),
   fixtureId: randomUUID(),
+  partyId: randomUUID(),
 }));
 const anonymous = makeClient();
 const checks = [];
+let artworkPath;
 
 function assert(condition, name) {
   if (!condition) throw new Error(name);
@@ -87,11 +89,18 @@ async function signIn(account) {
 }
 
 async function cleanup() {
+  const creator = accounts.find(({ name }) => name === "creator");
   const results = await Promise.allSettled(
     accounts.flatMap((account) => [
       account.client.from("custom_lists").delete().eq("id", account.fixtureId),
+      account.client.from("watch_party_members").delete().eq("party_id", account.partyId),
+      account.client.from("watch_parties").delete().eq("id", account.partyId),
       account.client.auth.signOut(),
-    ]),
+    ]).concat(
+      artworkPath && creator
+        ? [creator.client.storage.from("title-artwork").remove([artworkPath])]
+        : [],
+    ),
   );
   return results.every(
     (result) => result.status === "fulfilled" && !result.value?.error,
@@ -169,6 +178,59 @@ try {
     role: "admin",
   });
   assert(Boolean(escalation.error), "client-side role escalation is rejected");
+
+  const partyOwner = accounts[0];
+  const partyIntruder = accounts[1];
+  const party = await partyOwner.client.from("watch_parties").insert({
+    id: partyOwner.partyId,
+    host_id: partyOwner.userId,
+    name: `RLS party ${suffix}`,
+  });
+  assert(!party.error, "an account can create its own watch party");
+  const membership = await partyOwner.client.from("watch_party_members").insert({
+    party_id: partyOwner.partyId,
+    user_id: partyOwner.userId,
+    role: "host",
+  });
+  assert(!membership.error, "a party host can create an owned membership");
+  const hiddenParty = await partyIntruder.client
+    .from("watch_parties")
+    .select("id")
+    .eq("id", partyOwner.partyId);
+  assert(
+    !hiddenParty.error && hiddenParty.data.length === 0,
+    "non-members cannot read private watch-party state",
+  );
+
+  const creator = accounts.find(({ name }) => name === "creator");
+  if (!creator) throw new Error("creator verification account is missing");
+  const creatorMemberships = await creator.client
+    .from("creator_team_memberships")
+    .select("user_id,team_id,role");
+  assert(
+    !creatorMemberships.error &&
+      creatorMemberships.data.every(({ user_id }) => user_id === creator.userId),
+    "creator-team membership visibility is scoped to the signed-in creator",
+  );
+
+  artworkPath = `${creator.userId}/rls-${randomUUID()}.png`;
+  const artwork = await creator.client.storage
+    .from("title-artwork")
+    .upload(artworkPath, new Uint8Array([137, 80, 78, 71]), {
+      contentType: "image/png",
+      upsert: false,
+    });
+  assert(!artwork.error, "creator can upload an owned artwork fixture");
+  await partyIntruder.client.storage
+    .from("title-artwork")
+    .remove([artworkPath]);
+  const retainedArtwork = await creator.client.storage
+    .from("title-artwork")
+    .download(artworkPath);
+  assert(
+    !retainedArtwork.error && retainedArtwork.data,
+    "another account cannot delete creator-owned storage objects",
+  );
 } catch (error) {
   failure = error instanceof Error ? error.message : "Live RLS verification failed";
 } finally {
