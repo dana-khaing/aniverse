@@ -163,3 +163,167 @@ backup, export, and deletion controls.
 Mature content is hidden by default. It can only be enabled by an eligible signed-in
 adult after confirming the required settings. Content that violates law or platform
 policy is never made available by changing maturity preferences.
+
+## Creator guide
+
+### Apply and join a team
+
+Open **Creator → Apply** and submit the requested channel, legal identity,
+portfolio, and distribution-rights information. An administrator must approve the
+application before publishing tools are enabled. Review notes and application
+status appear in the creator area.
+
+Approved creators can create or join a creator team through an invitation. Team
+roles determine who may edit metadata, manage media, schedule releases, or manage
+other members. A creator can only access teams where they have an active membership.
+
+### Build a title
+
+In Creator Studio:
+
+1. Create the title and complete its core metadata and maturity rating.
+2. Add seasons and episodes in the intended order.
+3. Upload licensed artwork and an optional trailer.
+4. Add translated title metadata for supported locales.
+5. Configure episode audio tracks and WebVTT subtitle tracks.
+6. Add chapter markers plus optional intro and outro ranges.
+7. Save drafts and resolve every release-readiness warning.
+
+Use only media, artwork, subtitles, and music that your team has the right to
+distribute. Rights documentation can be requested during review or after a report.
+
+### Upload and replace video
+
+Select an episode in the media console and start a cloud upload. The uploader
+supports progress reporting, retry, cancellation, replacement, and deletion when
+the account and asset state allow it. Keep the page open until the direct upload
+has been accepted.
+
+After upload, processing status is updated by the video provider. Playback is not
+available until transcoding succeeds and the episode passes the applicable review.
+Replacing a published video may return it to review. Do not repeatedly create
+uploads while one is processing; use retry or replacement on the existing item.
+
+### Schedule and publish
+
+Creators can configure scheduled releases, premieres, trailers, announcements,
+and countdowns. Check title metadata, rights, maturity rating, artwork, processed
+video, tracks, and markers in the release-readiness panel before submission.
+
+The first publication and material replacements may require moderation approval.
+Times are stored consistently and displayed using the viewer's supported locale
+and timezone.
+
+### Analytics and payments
+
+Creator analytics include qualified views, retention, completion rate, and
+available audience geography. Very small or privacy-sensitive cohorts may be
+withheld. Analytics can be delayed while playback events are validated.
+
+Where creator tips are enabled, a team owner connects the supported payment
+provider using the protected onboarding flow. Payment onboarding can require
+recent authentication and MFA. AniVerse never displays the provider's secret
+credentials in Creator Studio.
+
+### Rights complaints and strikes
+
+Creators can review applicable complaints, takedowns, strikes, evidence, and
+appeal status in the creator rights area. Submit a counter-notice or appeal only
+when the information is accurate and you are authorized to act for the rights
+holder. Expired strikes remain represented in audit history where required.
+
+## Moderator guide
+
+Moderator access is assigned by an administrator and checked against the current
+server-side role on every protected request. Moderator tools cover report queues,
+evidence review, appeals, takedown execution, creator strikes, and support cases.
+
+For each case:
+
+1. Confirm the reported object, policy category, parties, and timestamps.
+2. Review attached evidence and relevant retained history.
+3. Record a clear decision reason without copying unnecessary personal data.
+4. Apply only the action supported by policy and current permissions.
+5. Confirm notifications and follow-up tasks were created.
+
+Do not use user metadata, screenshots of role labels, or client-visible state as
+proof of authorization. Escalate conflicts of interest, credible legal requests,
+and uncertain high-impact actions to an administrator.
+
+## Administrator guide
+
+The administrator dashboard includes creator applications, user and role
+management, moderation operations, DMCA administration, notification operations,
+platform controls, support, and audit history.
+
+- Grant the minimum role required and provide a reason for every access change.
+- Do not suspend yourself, remove the final administrator, or use a personal test
+  account for production verification.
+- Reauthenticate and complete MFA when prompted for sensitive mutations.
+- Use audit history to confirm actor, target, reason, outcome, and timestamp.
+- Use the status and readiness views when investigating provider incidents.
+
+Service-role credentials belong only in protected server environments. They must
+never be pasted into the browser, a support case, chat, source control, or a value
+whose name begins with `NEXT_PUBLIC_`.
+
+## Accessibility and keyboard use
+
+AniVerse is designed for keyboard navigation, visible focus, screen readers,
+captions, reduced motion, and responsive zoom. Use `Tab` and `Shift+Tab` to move
+between controls and `Enter` or `Space` to activate the focused control. Player
+shortcuts are listed earlier in this guide.
+
+If an animation causes discomfort, enable reduced motion in the operating system.
+If a control cannot be reached, a label is unclear, or captions are unusable,
+submit a support ticket with the page, browser, device, and expected behavior.
+
+## Troubleshooting
+
+### Sign-in or synchronization problems
+
+- Confirm the verification or recovery link is the newest one requested.
+- Allow first-party cookies and ensure the device clock is correct.
+- Refresh after connectivity returns, then review active sessions.
+- Local demo data belongs to that browser profile and is not cloud-synchronized.
+
+### Playback problems
+
+- Confirm the episode is published and available to the current account.
+- Disable a network-level blocker temporarily if it prevents the media host.
+- Try automatic quality, then a lower quality on a constrained connection.
+- Check that the selected audio or subtitle track exists for the episode.
+- Reload after a watch-party reconnection before manually seeking again.
+
+### Upload problems
+
+- Use a supported file and keep it within the displayed size/type limits.
+- Retry a resumable upload instead of creating duplicate episode assets.
+- If processing fails, keep the asset ID and error state when contacting support.
+- Confirm the creator team role still permits editing the selected title.
+
+### Missing email or push messages
+
+Check spam folders, notification categories, browser permission, and the email on
+the account. Delivery can be delayed during a provider incident; consult the
+public Status page before repeatedly requesting the same event.
+
+## Help, safety, and legal requests
+
+- Use **Help** for product guidance and **Support** to open or follow a ticket.
+- Use **Status** for current service incidents.
+- Use the in-product report action for community or catalog policy concerns.
+- Use **Copyright** or **Takedown** for rights-owner and DMCA workflows.
+- Review **Terms** and **Privacy** for the governing documents and data practices.
+
+For urgent personal safety concerns or illegal activity, contact the appropriate
+local authority first. Do not include passwords, authentication codes, payment
+credentials, or unrelated personal data in a support ticket.
+
+## Local development users
+
+In an unconfigured local copy, AniVerse exposes demo workflows backed by browser
+storage. Start the site with `pnpm dev`, open the URL printed by Next.js, and use
+the visible demo controls. Cloud authentication, cross-device synchronization,
+managed video processing, email, payment, and production push delivery require
+their corresponding providers and cannot be proven by local demo state.

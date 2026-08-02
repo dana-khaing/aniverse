@@ -4,6 +4,9 @@ AniVerse is a creator-first anime streaming platform for licensed, public-domain
 and creator-owned content. It combines a polished discovery and viewing experience
 with creator publishing, community participation, and transparent moderation.
 
+New to the product? See the [AniVerse user guide](docs/user-guide.md) for viewer,
+creator, moderator, administrator, playback, account, and troubleshooting guidance.
+
 > [!IMPORTANT]
 > AniVerse does not scrape, mirror, or embed unauthorized streams. Every published
 > title must have documented distribution rights and pass the platform's review
