@@ -76,6 +76,7 @@ export default async function LocaleHome({
         <p>{copy.footer.tagline}</p>
         <div>
           <Link href={localePath(locale,"about")}>{copy.footer.about}</Link>
+          <Link href="/guide">Guide</Link>
           <Link href={localePath(locale,"terms")}>{copy.footer.terms}</Link>
           <Link href={localePath(locale,"privacy")}>{copy.footer.privacy}</Link>
           <Link href={localePath(locale,"takedown")}>{copy.footer.takedown}</Link>
