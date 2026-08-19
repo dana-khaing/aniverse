@@ -7,6 +7,7 @@ import {
   translationCompleteness,
   type CreatorTranslationInput,
 } from "@/lib/creator-translations";
+import { AniListAutofill } from "@/components/creator/anilist-autofill";
 
 type Title = {
   id: string;
@@ -161,6 +162,15 @@ export function TranslationManager({ cloud }: { cloud: boolean }) {
           );
         })}
       </div>
+      <AniListAutofill
+        onApply={({ nativeName, synopsis }) =>
+          setDraft((value) => ({
+            ...value,
+            nativeName: nativeName || value.nativeName,
+            synopsis: synopsis || value.synopsis,
+          }))
+        }
+      />
       <form onSubmit={save}>
         <div className="translation-progress">
           <span>{completion}% complete</span>

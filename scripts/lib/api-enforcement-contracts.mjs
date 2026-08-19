@@ -43,6 +43,7 @@ export const apiEnforcementContracts = {
     "src/app/api/v1/account/sessions/route.ts",
     "src/app/api/v1/community/route.ts",
     "src/app/api/v1/creator/analytics/route.ts",
+    "src/app/api/v1/creator/anilist-search/route.ts",
     "src/app/api/v1/creator/application/route.ts",
     "src/app/api/v1/creator/assets/route.ts",
     "src/app/api/v1/creator/audio-tracks/route.ts",
