@@ -1,5 +1,11 @@
 # AniVerse
 
+[![CI](https://github.com/dana-khaing/aniverse/actions/workflows/ci.yml/badge.svg)](https://github.com/dana-khaing/aniverse/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](package.json)
+
 AniVerse is a creator-first anime streaming platform for licensed, public-domain,
 and creator-owned content. It combines a polished discovery and viewing experience
 with creator publishing, community participation, and transparent moderation.
