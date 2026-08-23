@@ -24,6 +24,7 @@ jobs:
       - run: pnpm test:indexes
       - run: pnpm test:security:service-role
       - run: pnpm test:api:contracts
+      - run: pnpm audit --prod --audit-level=high
       - run: pnpm test
       - run: pnpm build
   browser:
