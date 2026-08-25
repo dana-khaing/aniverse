@@ -32,12 +32,13 @@ const schedule = [
 ];
 
 function ShowCard({ show, rank }: { show: (typeof shows)[number]; rank?: number }) {
+  const slug = show.title.toLowerCase().replaceAll(" ", "-");
   return (
     <article className="show-card">
       <div className={`poster poster-${show.tone}`}>
         <span className="poster-mark">{show.mark}</span>
         {rank ? <span className="rank">#{rank.toString().padStart(2, "0")}</span> : null}
-        <button className="card-play" aria-label={`Play ${show.title}`}><Play fill="currentColor" size={18} /></button>
+        <Link className="card-play" href={`/watch/${slug}/1`} aria-label={`Play ${show.title}`}><Play fill="currentColor" size={18} /></Link>
         <div className="episode-tags"><span>CC {show.episode}</span><span>EP {show.episode}</span></div>
       </div>
       <h3>{show.title}</h3>
@@ -76,16 +77,16 @@ export default function Home() {
         </section>
 
         <div className="content-wrap">
-          <section className="quick-search" aria-label="Find anime">
-            <div><Search size={21} /><input aria-label="Search anime" placeholder="Search anime, genres, creators..." /></div>
-            <button>Search</button>
-            <div className="trending-search"><Flame size={15} /> Trending: <Link href="/search?q=asteria">Asteria</Link><Link href="/search?q=neon">Neon Ronin</Link><Link href="/search?q=skybound">Skybound</Link></div>
-          </section>
+          <form className="quick-search" action="/browse" aria-label="Find anime">
+            <div><Search size={21} /><input name="q" type="search" aria-label="Search anime" placeholder="Search anime, genres, creators..." /></div>
+            <button type="submit">Search</button>
+            <div className="trending-search"><Flame size={15} /> Trending: <Link href="/browse?q=asteria">Asteria</Link><Link href="/browse?q=neon">Neon Ronin</Link><Link href="/browse?q=skybound">Skybound</Link></div>
+          </form>
 
           <nav className="genre-rail" aria-label="Popular genres"><span>Explore</span>{["Action","Romance","Fantasy","Sci-fi","Mystery","Comedy","Drama"].map((genre)=><Link key={genre} href={`/browse?genre=${encodeURIComponent(genre)}`}>{genre}</Link>)}<Link className="genre-more" href="/browse">All genres <ArrowRight size={13}/></Link></nav>
 
           <section className="content-section">
-            <div className="section-heading"><div><span className="section-icon"><Flame size={18} /></span><div><p>WHAT EVERYONE IS WATCHING</p><h2>Trending now</h2></div></div><Link href="/trending">View all <ArrowRight size={16} /></Link></div>
+            <div className="section-heading"><div><span className="section-icon"><Flame size={18} /></span><div><p>WHAT EVERYONE IS WATCHING</p><h2>Trending now</h2></div></div><Link href="/browse?sort=score">View all <ArrowRight size={16} /></Link></div>
             <div className="card-grid">{shows.slice(0, 5).map((show, index) => <ShowCard key={show.title} rank={index + 1} show={show} />)}</div>
           </section>
 
@@ -93,7 +94,7 @@ export default function Home() {
 
           <section className="content-section split-section">
             <div className="latest-panel">
-              <div className="section-heading"><div><span className="section-icon purple"><Clock3 size={18} /></span><div><p>FRESH FROM THE STUDIOS</p><h2>Latest episodes</h2></div></div><Link href="/latest">View all <ArrowRight size={16} /></Link></div>
+              <div className="section-heading"><div><span className="section-icon purple"><Clock3 size={18} /></span><div><p>FRESH FROM THE STUDIOS</p><h2>Latest episodes</h2></div></div><Link href="/browse?sort=newest">View all <ArrowRight size={16} /></Link></div>
               <div className="latest-grid">{shows.slice(0, 4).map((show) => <ShowCard key={show.title} show={show} />)}</div>
             </div>
             <aside className="schedule-panel">
