@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Captions,
@@ -75,6 +76,7 @@ export function LocalPlayer({
   partyEvent,
   partyTransport,
 }: LocalPlayerProps) {
+  const router = useRouter();
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -445,7 +447,7 @@ export function LocalPlayer({
                 event.currentTarget.duration,
               );
               if (autoplay && episode < totalEpisodes)
-                window.location.assign(`/watch/${slug}/${episode + 1}`);
+                router.push(`/watch/${slug}/${episode + 1}`);
             }}
             onLoadedMetadata={(event) => {
               setDuration(event.currentTarget.duration || 1440);

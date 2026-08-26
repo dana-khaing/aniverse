@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SecuritySettings } from "./security-settings";
 
 vi.mock("@/lib/supabase/config", () => ({ isSupabaseConfigured: () => false }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 describe("SecuritySettings", () => {
   it("shows password and session controls", () => {
