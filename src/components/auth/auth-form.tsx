@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ArrowRight, Globe2, LoaderCircle, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +10,7 @@ import { legalVersion } from "@/lib/legal";
 type Mode = "sign-in" | "sign-up" | "recover";
 
 export function AuthForm({ mode }: { mode: Mode }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
@@ -20,7 +22,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       const supabase = createClient();
       if (mode === "sign-in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error; window.location.assign("/account");
+        if (error) throw error; router.push("/account");
       } else if (mode === "sign-up") {
         const { error } = await supabase.auth.signUp({
           email,
