@@ -19,7 +19,7 @@ export function PublicHeader({
     <>
       <header className="catalog-header">
         <Brand href={localePath(locale)} />
-        <nav aria-label="Primary navigation">
+        <nav className="catalog-primary-nav" aria-label="Primary navigation">
           <Link href={localePath(locale)}>{copy.nav.home}</Link>
           <Link href={localePath(locale, "/browse")}>{copy.nav.browse}</Link>
           <Link href={localePath(locale, "/schedule")}>
