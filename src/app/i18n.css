@@ -1,6 +1,9 @@
 .locale-switcher {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  flex: none;
+  width: auto;
+  height: 34px;
   gap: 3px;
   padding: 3px;
   border: 1px solid var(--border);
@@ -8,6 +11,9 @@
   background: #0b0b11;
 }
 .locale-switcher a {
+  display: grid;
+  place-items: center;
+  height: 26px;
   padding: 5px 7px;
   border-radius: 4px;
   color: #77717f;
@@ -68,7 +74,7 @@
 }
 @media (max-width: 760px) {
   .catalog-header .locale-switcher {
-    display: flex;
+    display: inline-flex;
     margin-left: auto;
   }
   .catalog-header .header-actions {
@@ -77,5 +83,14 @@
   .locale-hero {
     min-height: 62vh;
     padding: 70px 24px;
+  }
+}
+
+@media (max-width: 1050px) {
+  .catalog-header .catalog-primary-nav {
+    display: none;
+  }
+  .catalog-header .locale-switcher {
+    margin-left: auto;
   }
 }
