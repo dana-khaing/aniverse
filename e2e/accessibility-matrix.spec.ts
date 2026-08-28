@@ -49,3 +49,27 @@ test("reduced-motion users can operate localized navigation", async ({
     page.getByRole("heading", { name: "Browse anime" }),
   ).toBeVisible();
 });
+
+for (const width of [390, 772, 1024, 1440]) {
+  test(`localized header stays usable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 820 });
+    await page.goto("/en/browse");
+
+    const localeSwitcher = page.getByRole("navigation", { name: "Language" });
+    await expect(localeSwitcher).toBeVisible();
+    const box = await localeSwitcher.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeLessThanOrEqual(40);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+
+    const english = page.getByRole("link", { name: "EN", exact: true });
+    const japanese = page.getByRole("link", { name: "JA", exact: true });
+    const [englishBox, japaneseBox] = await Promise.all([
+      english.boundingBox(),
+      japanese.boundingBox(),
+    ]);
+    expect(englishBox).not.toBeNull();
+    expect(japaneseBox).not.toBeNull();
+    expect(Math.abs(englishBox!.y - japaneseBox!.y)).toBeLessThan(2);
+  });
+}
