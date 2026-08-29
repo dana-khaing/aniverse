@@ -354,6 +354,7 @@ export function LocalPlayer({
   }
   function seekTo(next: number) {
     if (videoRef.current) videoRef.current.currentTime = next;
+    setPosition(next);
     saveProgress(next);
     reportEvent("seek", next, videoRef.current?.duration || 1440);
   }
@@ -389,6 +390,8 @@ export function LocalPlayer({
       },
     });
   }
+
+  const skipMarker = activeSkipMarker(markers, position);
 
   return (
     <main className="watch-shell">
@@ -492,6 +495,14 @@ export function LocalPlayer({
             <Play fill="currentColor" />
           )}
         </button>
+        {skipMarker && (
+          <button
+            className="skip-segment"
+            onClick={() => seekTo(skipMarker.end!)}
+          >
+            Skip {skipMarker.kind}
+          </button>
+        )}
         <div className="video-controls">
           <input
             aria-label="Playback position"
@@ -662,14 +673,6 @@ export function LocalPlayer({
             Autoplay next
           </label>
         </div>
-        {activeSkipMarker(markers, position) && (
-          <button
-            className="skip-segment"
-            onClick={() => seekTo(activeSkipMarker(markers, position)!.end!)}
-          >
-            Skip {activeSkipMarker(markers, position)!.kind}
-          </button>
-        )}
       </section>
       <section className="watch-info">
         <div>
