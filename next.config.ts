@@ -3,6 +3,9 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "media.kitsu.app" }],
+  },
   async headers() {
     return [
       {
