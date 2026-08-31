@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRef, useState } from "react";
 import { localePath, messages, type Locale } from "@/lib/i18n";
 import {
   Brand,
@@ -6,6 +9,7 @@ import {
   MobileDock,
 } from "@/components/catalog/site-navigation";
 import { LocaleSwitcher } from "@/components/catalog/locale-switcher";
+import { HeaderSearch } from "@/components/catalog/header-search";
 
 export function PublicHeader({
   locale = "en",
@@ -14,6 +18,16 @@ export function PublicHeader({
   locale?: Locale;
   path?: string;
 }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchTrigger = useRef<HTMLElement | null>(null);
+  const openSearch = (trigger?: HTMLElement) => {
+    if (trigger) searchTrigger.current = trigger;
+    setSearchOpen(true);
+  };
+  const closeSearch = () => {
+    setSearchOpen(false);
+    window.requestAnimationFrame(() => searchTrigger.current?.focus());
+  };
   const copy = messages[locale];
   return (
     <>
@@ -29,9 +43,10 @@ export function PublicHeader({
           <Link href="/community">{copy.nav.community}</Link>
         </nav>
         <LocaleSwitcher locale={locale} path={path} />
+        <HeaderSearch locale={locale} open={searchOpen} onOpen={openSearch} onClose={closeSearch} />
         <HeaderActions compact locale={locale} />
       </header>
-      <MobileDock locale={locale} />
+      <MobileDock locale={locale} onSearch={openSearch} />
     </>
   );
 }

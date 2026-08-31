@@ -23,7 +23,7 @@ export function Brand({ href = "/" }: { href?: string }) {
   );
 }
 
-export function MobileDock({ locale = "en" }: { locale?: Locale }) {
+export function MobileDock({ locale = "en", onSearch }: { locale?: Locale; onSearch?: (trigger:HTMLButtonElement) => void }) {
   const copy = messages[locale].nav;
   return (
     <nav className="mobile-dock" aria-label="Mobile navigation">
@@ -35,13 +35,7 @@ export function MobileDock({ locale = "en" }: { locale?: Locale }) {
         <Compass size={19} />
         <span>{copy.browse}</span>
       </Link>
-      <Link
-        className="dock-search"
-        href={localePath(locale, "/browse")}
-        aria-label={copy.search}
-      >
-        <Search size={22} />
-      </Link>
+      {onSearch ? <button className="dock-search" aria-label={copy.search} onClick={event=>onSearch(event.currentTarget)}><Search size={22} /></button> : <Link className="dock-search" href={localePath(locale, "/browse")} aria-label={copy.search}><Search size={22} /></Link>}
       <Link href={localePath(locale, "/schedule")}>
         <CalendarDays size={19} />
         <span>{copy.schedule}</span>

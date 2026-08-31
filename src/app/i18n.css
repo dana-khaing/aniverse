@@ -24,12 +24,12 @@
   color: #fff;
   background: #a45fff;
 }
-.catalog-header .locale-switcher + .header-actions .profile-button {
+.catalog-header .header-actions .profile-button {
   width: 34px;
   justify-content: center;
   padding-inline: 0;
 }
-.catalog-header .locale-switcher + .header-actions .profile-button span {
+.catalog-header .header-actions .profile-button span {
   display: none;
 }
 .locale-home {

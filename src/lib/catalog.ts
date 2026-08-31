@@ -1,6 +1,7 @@
 export type CatalogTitle = { id?:string; creatorTeamId?:string; slug:string; name:string; nativeName:string; synopsis:string; genre:string[]; year:number; score:number; episodes:number; format:"TV"|"Movie"; tone:string; studio:string; status:string };
 export type SearchFilters = { query?:string; genre?:string; year?:number; format?:CatalogTitle["format"]|"all"; status?:string; studio?:string; minScore?:number; sort?:"popular"|"score"|"newest"|"title" };
 export type SearchSuggestion = Pick<CatalogTitle,"slug"|"name"|"nativeName"|"studio"|"tone">;
+export type DiscoverySuggestion = { id:string; title:string; nativeTitle:string; subtype:string|null; posterImage:string|null };
 export type Recommendation = { title:CatalogTitle; score:number; reason:string };
 
 export const catalog: CatalogTitle[] = [
