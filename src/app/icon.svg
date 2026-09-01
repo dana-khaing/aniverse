@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AniVerse orbit">
+  <defs>
+    <radialGradient id="planet" cx="35%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#d9b8ff"/>
+      <stop offset="0.38" stop-color="#a55fff"/>
+      <stop offset="1" stop-color="#4b2470"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#08080d"/>
+  <circle cx="256" cy="256" r="116" fill="url(#planet)" stroke="#b874ff" stroke-width="14" filter="url(#glow)"/>
+  <ellipse cx="256" cy="256" rx="178" ry="61" fill="none" stroke="#ead9ff" stroke-width="12" transform="rotate(-30 256 256)"/>
+  <circle cx="402" cy="163" r="23" fill="#fff" stroke="#c88cff" stroke-width="8" filter="url(#glow)"/>
+</svg>

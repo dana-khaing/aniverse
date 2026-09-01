@@ -12,5 +12,15 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#08080d",
     theme_color: "#08080d",
     categories: ["entertainment", "video"],
+    icons: [
+      { src: "/icons/aniverse-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icons/aniverse-512.png", sizes: "512x512", type: "image/png" },
+      {
+        src: "/icons/aniverse-maskable-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
   };
 }
