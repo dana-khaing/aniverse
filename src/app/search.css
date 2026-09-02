@@ -25,6 +25,6 @@
 
 @media (max-width:700px) {
   .mobile-dock button { border:0; }
-  .mobile-dock a,.mobile-dock button { display:flex; flex-direction:column; align-items:center; gap:4px; color:#817b8e; font-size:8px; }
+  .mobile-dock>a,.mobile-dock>.more-menu>button { display:flex; flex-direction:column; align-items:center; gap:4px; color:#817b8e; font-size:8px; }
   .mobile-dock .dock-search { width:45px; height:45px; place-self:center; border-radius:50%; justify-content:center; color:#fff; background:linear-gradient(135deg,#bd72ff,#7842d6); box-shadow:0 7px 25px #a45fff55; transform:translateY(-9px); }
 }

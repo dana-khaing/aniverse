@@ -1,4 +1,3 @@
-import { PublicHeader } from "@/components/catalog/public-header";
-import { CommunityFeed } from "@/components/community/community-feed";
+import { redirect } from "next/navigation";
 
-export default function CommunityPage(){return <><PublicHeader/><CommunityFeed/></>}
+export default function CommunityPage(){redirect("/en/community")}

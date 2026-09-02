@@ -7,6 +7,7 @@ import {
   Brand,
   HeaderActions,
   MobileDock,
+  MoreMenu,
 } from "@/components/catalog/site-navigation";
 import { LocaleSwitcher } from "@/components/catalog/locale-switcher";
 import { HeaderSearch } from "@/components/catalog/header-search";
@@ -39,12 +40,13 @@ export function PublicHeader({
           <Link href={localePath(locale, "/schedule")}>
             {copy.nav.schedule}
           </Link>
-          <Link href="/charts/seasonal">{copy.nav.charts}</Link>
-          <Link href="/community">{copy.nav.community}</Link>
+          <Link className="nav-wide" href={localePath(locale,"/charts/seasonal")}>{copy.nav.charts}</Link>
+          <Link className="nav-wide" href={localePath(locale,"/community")}>{copy.nav.community}</Link>
+          <MoreMenu locale={locale}/>
         </nav>
         <LocaleSwitcher locale={locale} path={path} />
         <HeaderSearch locale={locale} open={searchOpen} onOpen={openSearch} onClose={closeSearch} />
-        <HeaderActions compact locale={locale} />
+        <HeaderActions compact showSearch={false} locale={locale} />
       </header>
       <MobileDock locale={locale} onSearch={openSearch} />
     </>
