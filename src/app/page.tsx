@@ -12,7 +12,8 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import { Brand, HeaderActions, MobileDock } from "@/components/catalog/site-navigation";
+import { Brand } from "@/components/catalog/site-navigation";
+import { PublicHeader } from "@/components/catalog/public-header";
 import { PersonalizedRow } from "@/components/catalog/personalized-row";
 
 const shows = [
@@ -50,14 +51,7 @@ function ShowCard({ show, rank }: { show: (typeof shows)[number]; rank?: number 
 export default function Home() {
   return (
     <div className="site-shell">
-      <header className="site-header">
-        <Brand />
-        <nav className="desktop-nav" aria-label="Primary navigation">
-          <Link className="active" href="/">Home</Link><Link href="/browse">Browse</Link>
-          <Link href="/schedule">Schedule</Link><Link href="/community">Community</Link>
-        </nav>
-        <HeaderActions />
-      </header>
+      <PublicHeader locale="en" path="/" />
 
       <main>
         <section className="hero">
@@ -120,7 +114,6 @@ export default function Home() {
       </main>
 
       <footer><Brand /><p>Stories worth discovering. Creators worth supporting.</p><div><Link href="/about">About</Link><Link href="/guide">Guide</Link><Link href="/help">Help</Link><Link href="/status">Status</Link><Link href="/support">Support</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><Link href="/copyright">Copyright</Link><Link href="/takedown">DMCA</Link></div><span>© 2026 AniVerse</span></footer>
-      <MobileDock />
     </div>
   );
 }

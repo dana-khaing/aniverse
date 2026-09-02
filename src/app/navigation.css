@@ -1,0 +1,18 @@
+.more-menu { position:relative; flex:none; }
+.more-menu>button { display:flex; align-items:center; gap:5px; border:0; background:transparent; color:#aaa4b2; cursor:pointer; font-size:11px; }
+.more-menu>div { position:absolute; z-index:110; top:36px; right:0; width:190px; padding:7px; border:1px solid #a45fff38; border-radius:9px; background:#12121bf5; box-shadow:0 18px 50px #000c; backdrop-filter:blur(18px); }
+.more-menu>div>a { display:flex; align-items:center; gap:9px; width:100%; padding:10px; border-radius:6px; color:#aaa4b2; font-size:10px; }
+.more-menu>div>a:hover,.more-menu>div>a[aria-current="page"] { color:#fff; background:#a45fff18; }
+.catalog-primary-nav>.more-menu { display:none; }
+.catalog-primary-nav>.more-menu>button { height:68px; }
+
+@media (max-width:1050px) {
+  .catalog-primary-nav>.more-menu { display:block; }
+}
+
+@media (max-width:700px) {
+  .dock-more { position:relative; display:flex; justify-content:center; }
+  .mobile-dock>.dock-more>button { width:auto; height:auto; transform:none; background:transparent; box-shadow:none; }
+  .dock-more>div { position:fixed; left:12px; right:12px; top:auto; bottom:76px; width:auto; display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .mobile-dock .dock-more>div>a { display:flex; flex-direction:row; justify-content:flex-start; gap:9px; padding:12px; color:#aaa4b2; font-size:10px; }
+}
