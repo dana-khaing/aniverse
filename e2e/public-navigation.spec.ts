@@ -21,5 +21,17 @@ for(const width of [390,772,1024]){
     const menu=page.getByRole("menu");
     await expect(menu.getByRole("menuitem",{name:/ランキング/})).toBeVisible();
     await expect(menu.getByRole("menuitem",{name:/コミュニティ/})).toHaveAttribute("href","/ja/community");
+    await expect(menu.getByRole("menuitem",{name:/クリエイター/})).toHaveAttribute("href","/ja/creators");
   });
 }
+
+test("creator spotlight opens the public directory and studio profile", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 820 });
+  await page.goto("/", { waitUntil: "networkidle" });
+  await page.getByRole("link", { name: "Explore creators" }).click();
+  await expect(page).toHaveURL(/\/en\/creators$/);
+  await expect(page.getByRole("heading", { name: "Explore creators" })).toBeVisible();
+  await page.getByRole("link", { name: /Lumen Works/ }).click();
+  await expect(page).toHaveURL(/\/en\/studios\/Lumen%20Works$/);
+  await expect(page.getByRole("heading", { name: "Lumen Works" })).toBeVisible();
+});
