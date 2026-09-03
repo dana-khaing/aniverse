@@ -42,6 +42,7 @@ export function PublicHeader({
           </Link>
           <Link className="nav-wide" href={localePath(locale,"/charts/seasonal")}>{copy.nav.charts}</Link>
           <Link className="nav-wide" href={localePath(locale,"/community")}>{copy.nav.community}</Link>
+          <Link className="nav-wide" href={localePath(locale,"/creators")}>{copy.nav.creators}</Link>
           <MoreMenu locale={locale}/>
         </nav>
         <LocaleSwitcher locale={locale} path={path} />

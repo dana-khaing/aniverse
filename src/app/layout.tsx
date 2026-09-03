@@ -11,6 +11,7 @@ import "./support.css";
 import "./consent.css";
 import "./search.css";
 import "./navigation.css";
+import "./creator-directory.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
