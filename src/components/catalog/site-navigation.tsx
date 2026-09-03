@@ -12,6 +12,7 @@ import {
   BarChart3,
   ChevronDown,
   MessageCircle,
+  Clapperboard,
   Search,
   UserRound,
 } from "lucide-react";
@@ -54,9 +55,9 @@ export function MobileDock({ locale = "en", onSearch }: { locale?: Locale; onSea
 
 export function MoreMenu({ locale="en", dock=false }: { locale?:Locale; dock?:boolean }) {
   const [open,setOpen]=useState(false); const root=useRef<HTMLDivElement>(null); const trigger=useRef<HTMLButtonElement>(null); const pathname=usePathname();
-  const labels=locale==="ja"?{more:"その他",charts:"ランキング",community:"コミュニティ",library:"ライブラリ",account:"アカウント"}:{more:"More",charts:"Charts",community:"Community",library:"Library",account:"Account"};
+  const labels=locale==="ja"?{more:"その他",charts:"ランキング",community:"コミュニティ",creators:"クリエイター",library:"ライブラリ",account:"アカウント"}:{more:"More",charts:"Charts",community:"Community",creators:"Creators",library:"Library",account:"Account"};
   useEffect(()=>{if(!open)return;const close=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==="Escape"){setOpen(false);trigger.current?.focus()}};document.addEventListener("pointerdown",close);document.addEventListener("keydown",escape);return()=>{document.removeEventListener("pointerdown",close);document.removeEventListener("keydown",escape)}},[open]);
-  const links=[{label:labels.charts,href:localePath(locale,"/charts/seasonal"),icon:BarChart3},{label:labels.community,href:localePath(locale,"/community"),icon:MessageCircle},{label:labels.library,href:"/library",icon:Library},{label:labels.account,href:"/account",icon:UserRound}];
+  const links=[{label:labels.charts,href:localePath(locale,"/charts/seasonal"),icon:BarChart3},{label:labels.community,href:localePath(locale,"/community"),icon:MessageCircle},{label:labels.creators,href:localePath(locale,"/creators"),icon:Clapperboard},{label:labels.library,href:"/library",icon:Library},{label:labels.account,href:"/account",icon:UserRound}];
   return <div ref={root} className={`more-menu${dock?" dock-more":""}`}><button ref={trigger} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{dock?<Compass size={19}/>:null}<span>{labels.more}</span>{!dock&&<ChevronDown size={13}/>}</button>{open&&<div role="menu">{links.map(({label,href,icon:Icon})=><Link key={href} role="menuitem" aria-current={pathname===href?"page":undefined} href={href} onClick={()=>setOpen(false)}><Icon size={16}/>{label}</Link>)}</div>}</div>;
 }
 

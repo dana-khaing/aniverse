@@ -9,6 +9,7 @@ describe("MoreMenu", () => {
     fireEvent.click(trigger);
     expect(screen.getByRole("menuitem", {name:/ランキング/})).toHaveAttribute("href","/ja/charts/seasonal");
     expect(screen.getByRole("menuitem", {name:/コミュニティ/})).toHaveAttribute("href","/ja/community");
+    expect(screen.getByRole("menuitem", {name:/クリエイター/})).toHaveAttribute("href","/ja/creators");
   });
 
   it("closes on Escape and restores trigger focus", () => {

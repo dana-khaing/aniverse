@@ -102,7 +102,7 @@ export default function Home() {
               <div className="section-heading"><div><span className="section-icon gold"><Crown size={18}/></span><div><p>THE COMMUNITY CHART</p><h2>Top 10 this week</h2></div></div><Link href="/charts/seasonal">See chart <ArrowRight size={16}/></Link></div>
               <div className="ranking-list">{shows.slice(0,5).map((show,index)=><Link href={`/anime/${show.title.toLowerCase().replaceAll(" ","-")}`} key={show.title}><strong>{String(index+1).padStart(2,"0")}</strong><div className={`ranking-thumb poster-${show.tone}`}><span>{show.mark}</span></div><div><h3>{show.title}</h3><p>{show.genre} · TV</p></div><span className="ranking-score"><Star size={12} fill="currentColor"/>{show.score}</span><ChevronRight size={15}/></Link>)}</div>
             </div>
-            <aside className="creator-spotlight"><p>CREATOR SPOTLIGHT</p><h2>Stories made<br/>to be remembered.</h2><span>Meet independent studios building the next generation of animation.</span><div className="studio-orbits" aria-hidden="true"><i/><i/><i/></div><Link href="/creator">Explore creators <ArrowRight size={15}/></Link></aside>
+            <aside className="creator-spotlight"><p>CREATOR SPOTLIGHT</p><h2>Stories made<br/>to be remembered.</h2><span>Meet independent studios building the next generation of animation.</span><div className="studio-orbits" aria-hidden="true"><i/><i/><i/></div><Link href="/en/creators">Explore creators <ArrowRight size={15}/></Link></aside>
           </section>
 
           <section className="browse-banner">
