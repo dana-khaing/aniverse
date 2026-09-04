@@ -1,14 +1,26 @@
-# AniVerse
+<div align="center">
+  <img src="public/icons/aniverse-192.png" alt="AniVerse orbit logo" width="96" />
+  <h1>AniVerse</h1>
+  <p><strong>Stories beyond the stars.</strong></p>
+  <p>A creator-first home for discovering, watching, and publishing independent animation.</p>
+</div>
+
+<div align="center">
 
 [![CI](https://github.com/dana-khaing/aniverse/actions/workflows/ci.yml/badge.svg)](https://github.com/dana-khaing/aniverse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](package.json)
+[![PWA](https://img.shields.io/badge/PWA-installable-8A4FFF?logo=pwa&logoColor=white)](src/app/manifest.ts)
+
+</div>
 
 AniVerse is a creator-first anime streaming platform for licensed, public-domain,
 and creator-owned content. It combines a polished discovery and viewing experience
 with creator publishing, community participation, and transparent moderation.
+
+**[Explore the product](#product-tour) · [Run locally](#quick-start) · [Read the user guide](docs/user-guide.md) · [Contribute](CONTRIBUTING.md) · [Report a vulnerability](SECURITY.md)**
 
 New to the product? See the [AniVerse user guide](docs/user-guide.md) for viewer,
 creator, moderator, administrator, playback, account, and troubleshooting guidance.
@@ -22,8 +34,18 @@ creator, moderator, administrator, playback, account, and troubleshooting guidan
 
 AniVerse gives viewers a fast, accessible way to discover and watch animation while
 giving approved creators the tools to publish, manage, and understand their work.
-The initial release is free to use and supports an English interface with multilingual
-audio, subtitles, and localized title metadata.
+The initial release is free to use and supports English and Japanese interfaces,
+multilingual audio, subtitles, and localized title metadata.
+
+## Product tour
+
+| Discover                                                                            | Watch                                                                                  | Create                                                                                          | Connect                                                                              |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Browse, localized search, seasonal charts, schedules, creators, and recommendations | Adaptive playback, chapters, intro/outro skipping, audio, captions, and watch progress | Rights-aware applications, team workflows, uploads, localization, release checks, and analytics | Community posts, replies, reactions, follows, notifications, reports, and moderation |
+
+AniVerse runs in a fully functional local demo mode. Production integrations are
+enabled independently through environment variables, so contributors can explore
+the complete interface without provider credentials.
 
 ### Viewer experience
 
@@ -76,18 +98,18 @@ audio, subtitles, and localized title metadata.
 
 ## Architecture
 
-| Area | Technology | Responsibility |
-| --- | --- | --- |
-| Web application | Next.js 16, React, TypeScript | App Router UI, server rendering, route handlers, and mutations |
-| Design system | Tailwind CSS, shadcn/ui, Geist | Responsive, accessible interface and reusable components |
-| Data platform | Supabase Postgres | Catalog, profiles, community, progress, moderation, and audit data |
-| Identity | Supabase Auth | Authentication, sessions, providers, and verified account lifecycle |
-| Realtime | Supabase Realtime | Notifications and live community updates |
-| Media | Mux | Direct uploads, transcoding, thumbnails, signed HLS, and media webhooks |
-| File storage | Supabase Storage | Avatars, approved artwork, documents, and subtitle files |
-| Hosting | Vercel | Web deployment, caching, functions, analytics, and observability |
-| Email | Resend | Verification-adjacent product mail and notification delivery |
-| Monitoring | Sentry and Vercel | Error reporting, traces, performance, and release health |
+| Area            | Technology                     | Responsibility                                                          |
+| --------------- | ------------------------------ | ----------------------------------------------------------------------- |
+| Web application | Next.js 16, React, TypeScript  | App Router UI, server rendering, route handlers, and mutations          |
+| Design system   | Tailwind CSS, shadcn/ui, Geist | Responsive, accessible interface and reusable components                |
+| Data platform   | Supabase Postgres              | Catalog, profiles, community, progress, moderation, and audit data      |
+| Identity        | Supabase Auth                  | Authentication, sessions, providers, and verified account lifecycle     |
+| Realtime        | Supabase Realtime              | Notifications and live community updates                                |
+| Media           | Mux                            | Direct uploads, transcoding, thumbnails, signed HLS, and media webhooks |
+| File storage    | Supabase Storage               | Avatars, approved artwork, documents, and subtitle files                |
+| Hosting         | Vercel                         | Web deployment, caching, functions, analytics, and observability        |
+| Email           | Resend                         | Verification-adjacent product mail and notification delivery            |
+| Monitoring      | Sentry and Vercel              | Error reporting, traces, performance, and release health                |
 
 Provider-specific video identifiers will be isolated behind a media service adapter
 so the managed video provider can be replaced later without changing the catalog
@@ -110,7 +132,7 @@ server-side authorization. Secrets and service credentials never enter browser c
 
 ## API and media flow
 
-Versioned endpoints under `/api/v1` will handle search suggestions, playback
+Versioned endpoints under `/api/v1` handle search suggestions, playback
 authorization, progress updates, creator upload sessions, reports, moderation,
 account exports, and provider webhooks. Inputs and outputs use shared Zod schemas
 and a consistent error envelope.
@@ -150,10 +172,10 @@ moderation, and playback authorization responses remain private and uncached.
 - Accessibility, responsive-layout, current-browser, dependency, rate-limit,
   webhook-replay, load, and degraded-network checks run before release.
 
-## Delivery roadmap
+## Release status
 
-The product is intended to ship as one complete public release, but implementation
-will proceed through independently testable pull requests:
+The complete product foundation is implemented through independently testable pull
+requests:
 
 1. Foundation: application scaffold, design system, environments, CI, and observability.
 2. Identity and authorization: authentication, profiles, roles, RLS, and account tools.
@@ -164,29 +186,64 @@ will proceed through independently testable pull requests:
 7. Administration and governance: curation, analytics, takedowns, and audit tools.
 8. Release hardening: performance, accessibility, security, recovery, and end-to-end QA.
 
-## Local development and deployment
+## Quick start
 
 AniVerse runs completely in local demo mode without provider accounts. Local browser
 storage persists creator, playback, library, community, and moderation workflows.
 
 ```bash
+corepack enable
 pnpm install
 pnpm dev
 ```
+
+Open `http://localhost:3000`. The application uses local demo data until production
+providers are configured.
+
+### Quality checks
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e:chromium
+```
+
+See [quality matrix](docs/quality-matrix.md) for broader browser, accessibility,
+security, data-policy, and release-gate coverage.
+
+## Production deployment
 
 Use Node.js 22 or newer. Copy `.env.example` to the ignored `.env.local` only when
 connecting providers. Supabase, Mux, Resend, and Sentry initialize only when their
 credentials exist; secrets never use the `NEXT_PUBLIC_` prefix. Resend defaults to
 its testing sender until a production domain is verified.
 
-Before release, run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 Vercel Git integration can deploy `main`; configure the variables from `.env.example`
 separately for Preview and Production. After deployment, verify `/api/health`, inspect
 Vercel runtime errors, confirm Sentry receives a test event, and verify Resend delivery.
 
+## Documentation
+
+- [User guide](docs/user-guide.md)
+- [Production provider configuration](docs/production-provider-configuration.md)
+- [Quality matrix](docs/quality-matrix.md)
+- [Backup and recovery](docs/backup-recovery.md)
+- [CDN and media delivery](docs/cdn-media-delivery.md)
+- [API enforcement contracts](docs/api-enforcement-contracts.md)
+- [Release enforcement](docs/production-release-enforcement.md)
+
+## Contributing and security
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the branch,
+validation, and pull-request workflow. Please use the private process in
+[SECURITY.md](SECURITY.md) for suspected vulnerabilities rather than opening a
+public issue.
+
 ## License and content policy
 
-The software license will be selected before source implementation begins. Content
-uploaded to AniVerse remains subject to its creator's ownership and distribution
-terms. Repository availability does not grant permission to reuse media, artwork,
+The source code is available under the [MIT License](LICENSE). Content uploaded to
+AniVerse remains subject to its creator's ownership and distribution terms.
+Repository availability does not grant permission to reuse media, artwork,
 branding, or user submissions.
