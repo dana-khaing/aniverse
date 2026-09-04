@@ -12,6 +12,7 @@ import "./consent.css";
 import "./search.css";
 import "./navigation.css";
 import "./creator-directory.css";
+import "./offline.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,13 +25,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "AniVerse — Stories beyond the stars", template: "%s · AniVerse" },
-  description: "Discover original and creator-owned animation, follow new releases, and support the storytellers behind every universe.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
+  title: {
+    default: "AniVerse — Stories beyond the stars",
+    template: "%s · AniVerse",
+  },
+  description:
+    "Discover original and creator-owned animation, follow new releases, and support the storytellers behind every universe.",
   applicationName: "AniVerse",
   keywords: ["anime", "animation", "creators", "streaming", "community"],
-  openGraph: { type: "website", siteName: "AniVerse", title: "AniVerse", description: "Stories worth discovering. Creators worth supporting." },
-  twitter: { card: "summary_large_image", title: "AniVerse", description: "Stories worth discovering. Creators worth supporting." },
+  openGraph: {
+    type: "website",
+    siteName: "AniVerse",
+    title: "AniVerse",
+    description: "Stories worth discovering. Creators worth supporting.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AniVerse",
+    description: "Stories worth discovering. Creators worth supporting.",
+  },
 };
 
 export default function RootLayout({
@@ -44,8 +60,16 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <a className="skip-link" href="#main-content">Skip to main content</a>
-        <div id="main-content"><LocalDataProvider>{children}<PwaProvider/><LegalConsentGate/></LocalDataProvider></div>
+        <a className="skip-link" href="#main-content">
+          Skip to main content
+        </a>
+        <div id="main-content">
+          <LocalDataProvider>
+            {children}
+            <PwaProvider />
+            <LegalConsentGate />
+          </LocalDataProvider>
+        </div>
         <Analytics />
         <SpeedInsights />
       </body>
